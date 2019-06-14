@@ -1,0 +1,88 @@
+#apollo.bootstrap.enabled = true
+#server.port=8866
+#spring.application.name=zuulserver
+#apollo.meta=http://localhost:8080
+#app.id=zuulserver
+
+server:
+  port: 8866
+  
+ribbon:  
+  ReadTimeout: 6000
+  ConnectTimeout: 6000
+  
+spring:
+  application:
+    name: zuulserver
+  main:
+    allow-bean-definition-overriding: true
+  zipkin:
+      base-url: http://localhost:9411
+  sleuth:
+    feign:
+      enabled: true
+    sampler:
+      probability: 1.0
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8865/eureka/
+    registry-fetch-interval-seconds: 5
+
+zuul:
+  host:
+    connect-timeout-millis: 10000
+    socket-timeout-millis: 60000
+  routes:
+    invest:
+      path: /invest/**
+      serviceId: investservice
+    user:
+      path: /user/**
+      serviceId: userservice
+    project:
+      path: /project/**
+      serviceId: projectservice
+    auth:
+      path: /auth/**
+      serviceId: auth-service
+    host:
+      socket-timeout-millis: 60000
+      connect-timeout-millis: 60000
+  add-proxy-headers: true
+  sensitive-headers:
+  retryable: true
+  ignored-services: '*'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+        exclude: env
+  endpoint:
+    health:
+      show-details: always
+
+hystrix:
+    command:
+        default:
+            execution:
+                isolation:
+                    thread:
+                        timeout-in-milliseconds: 3000
+                        
+security:
+  basic:
+    enabled: false
+  oauth2:
+    client:
+      access-token-uri: http://localhost:8866/auth/oauth/token
+      user-authorization-uri: http://localhost:8866/auth/oauth/authorize
+      client-id: userservice
+    resource:
+      user-info-uri: http://localhost:8866/auth/user
+      prefer-token-info: false
+      jwt:
+        key-value: fzp123

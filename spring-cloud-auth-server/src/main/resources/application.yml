@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: auth-service
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ceshi?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8
+    username: huaxin
+    password: Koreyoshih527
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  redis:
+    host: localhost
+    database: 0
+    port: 6379
+
+security:
+  oauth2:
+    resource:
+      filter-order: 3
+      
+server:
+  port: 8599
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8865/eureka/
