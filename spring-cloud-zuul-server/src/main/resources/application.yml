@@ -71,7 +71,7 @@ hystrix:
             execution:
                 isolation:
                     thread:
-                        timeout-in-milliseconds: 3000
+                        timeout-in-milliseconds: 5000
                         
 security:
   basic:

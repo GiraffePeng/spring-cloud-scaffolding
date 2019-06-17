@@ -19,7 +19,14 @@ security:
   oauth2:
     resource:
       filter-order: 3
-      
+hystrix:
+    command:
+        default:
+            execution:
+                isolation:
+                    thread:
+                        timeout-in-milliseconds: 3000
+
 server:
   port: 8599
 eureka:

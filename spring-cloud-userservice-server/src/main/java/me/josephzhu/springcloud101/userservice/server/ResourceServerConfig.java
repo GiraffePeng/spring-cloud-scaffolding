@@ -16,6 +16,12 @@ import org.springframework.security.oauth2.provider.token.TokenStore;
 public class ResourceServerConfig extends ResourceServerConfigurerAdapter{
 	@Autowired
     private TokenStore tokenStore;
+	
+	@Autowired
+	private CustomAccessDeniedHandler customAccessDeniedHandler;
+	
+	@Autowired
+	private AuthExceptionEntryPoint authExceptionEntryPoint;
 
     @Override
     public void configure(HttpSecurity http) throws Exception {
@@ -32,5 +38,7 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter{
     @Override
     public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
         resources.tokenStore(tokenStore);
+        resources.authenticationEntryPoint(authExceptionEntryPoint)
+                .accessDeniedHandler(customAccessDeniedHandler);
     }
 }
