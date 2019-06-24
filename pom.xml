@@ -9,11 +9,8 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>spring-cloud-investservice-api</module>
         <module>spring-cloud-investservice-server</module>
-        <module>spring-cloud-userservice-api</module>
         <module>spring-cloud-userservice-server</module>
-        <module>spring-cloud-projectservice-api</module>
         <module>spring-cloud-projectservice-server</module>
         <module>spring-cloud-eureka-server</module>
         <module>spring-cloud-zuul-server</module>
@@ -21,6 +18,8 @@
         <module>spring-cloud-projectservice-listener</module>
         <module>spring-cloud-admin-server</module>
         <module>spring-cloud-auth-server</module>
+        <module>spring-cloud-payservice-server</module>
+        <module>spring-cloud-common</module>
     </modules>
 
     <parent>

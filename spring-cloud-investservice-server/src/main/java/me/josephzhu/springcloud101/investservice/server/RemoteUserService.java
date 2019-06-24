@@ -1,10 +1,11 @@
 package me.josephzhu.springcloud101.investservice.server;
 
 import lombok.extern.slf4j.Slf4j;
-import me.josephzhu.springcloud101.userservice.api.User;
-import me.josephzhu.springcloud101.userservice.api.UserService;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
+
+import com.peng.userservice.entity.User;
+import com.peng.userservice.service.UserService;
 
 import java.math.BigDecimal;
 

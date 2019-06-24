@@ -1,14 +1,15 @@
 package me.josephzhu.springcloud101.projectservice.server;
 
 import lombok.extern.slf4j.Slf4j;
-import me.josephzhu.springcloud101.projectservice.api.Project;
-import me.josephzhu.springcloud101.projectservice.api.ProjectService;
-import me.josephzhu.springcloud101.userservice.api.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.peng.projectservice.entity.Project;
+import com.peng.projectservice.service.ProjectService;
+import com.peng.userservice.entity.User;
 
 import java.math.BigDecimal;
 

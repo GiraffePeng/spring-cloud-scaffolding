@@ -2,8 +2,9 @@ package me.josephzhu.springcloud101.projectservice.listener;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.peng.projectservice.entity.Project;
+
 import lombok.extern.slf4j.Slf4j;
-import me.josephzhu.springcloud101.projectservice.api.Project;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;

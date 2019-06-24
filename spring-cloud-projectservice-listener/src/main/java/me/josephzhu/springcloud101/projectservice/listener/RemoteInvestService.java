@@ -1,7 +1,8 @@
 package me.josephzhu.springcloud101.projectservice.listener;
 
-import me.josephzhu.springcloud101.investservice.api.InvestService;
 import org.springframework.cloud.openfeign.FeignClient;
+
+import com.peng.investservice.service.InvestService;
 
 @FeignClient(value = "investservice")
 public interface RemoteInvestService extends InvestService {

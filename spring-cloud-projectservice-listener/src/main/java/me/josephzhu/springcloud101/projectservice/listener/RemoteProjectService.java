@@ -1,9 +1,10 @@
 package me.josephzhu.springcloud101.projectservice.listener;
 
-import me.josephzhu.springcloud101.projectservice.api.Project;
-import me.josephzhu.springcloud101.projectservice.api.ProjectService;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.stereotype.Component;
+
+import com.peng.projectservice.entity.Project;
+import com.peng.projectservice.service.ProjectService;
 
 import java.math.BigDecimal;
 

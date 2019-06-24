@@ -1,7 +1,5 @@
 package me.josephzhu.springcloud101.userservice.server;
 
-import me.josephzhu.springcloud101.userservice.api.User;
-import me.josephzhu.springcloud101.userservice.api.UserService;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,9 +11,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.peng.userservice.service.UserService;
+
 import java.math.BigDecimal;
 import java.util.UUID;
-
+import com.peng.userservice.entity.User;
 import javax.servlet.http.HttpServletRequest;
 
 @RestController
@@ -44,7 +44,7 @@ public class UserServiceController implements UserService {
     }
     
     @RequestMapping(value = "/foo", method = RequestMethod.GET)
-    @PreAuthorize("hasAuthority('USER')")
+    @PreAuthorize("hasAuthority('USERS')")
     public String getFoo() {
         return "i'm foo, " + UUID.randomUUID().toString();
     }
