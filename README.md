@@ -60,4 +60,6 @@ CREATE TABLE `user_auth` (
 * Zuul服务网关和自定义过滤器<br>
 * JPA数据访问和Redisson分布式锁<br>
 * security做授权与认证<br>
+* swagger做为标准的Result API文档使用 详见:[集成Swagger](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/readme/swagger.md)<br>
+
 后续会进行添加配置中心apollo与分布式事务管理中间件，后续也会集成当当的sharding-jdbc数据库中间件以Druid为数据源做分库分表与读写分离的构建。<br>
