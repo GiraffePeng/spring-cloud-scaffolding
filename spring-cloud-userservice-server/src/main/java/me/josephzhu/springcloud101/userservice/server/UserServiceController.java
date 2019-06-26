@@ -3,7 +3,6 @@ package me.josephzhu.springcloud101.userservice.server;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,12 +38,10 @@ public class UserServiceController implements UserService {
     public UserLoginDTO login(@RequestParam("username") String username,
                               @RequestParam("password") String password,
                               HttpServletRequest request) {
-    	String header = request.getHeader("Authorization");
         return userServiceDetail.login(username,password);
     }
     
     @RequestMapping(value = "/foo", method = RequestMethod.GET)
-    @PreAuthorize("hasAuthority('USERS')")
     public String getFoo() {
         return "i'm foo, " + UUID.randomUUID().toString();
     }

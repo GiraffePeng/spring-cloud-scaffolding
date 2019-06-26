@@ -58,10 +58,6 @@
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>3.8.2</version>
         </dependency>
-		<dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-oauth2</artifactId>
-        </dependency>
         <dependency>
             <groupId>me.peng</groupId>
             <artifactId>spring-cloud-common</artifactId>

@@ -3,7 +3,7 @@ spring:
     name: auth-service
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ceshi?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8
+    url: jdbc:mysql://rm-2zek7snp605lx2cg9o.mysql.rds.aliyuncs.com:3306/ceshi?useUnicode=true&characterEncoding=utf8&characterSetResults=utf8
     username: huaxin
     password: Koreyoshih527
   jpa:

@@ -1,4 +1,4 @@
-package me.josephzhu.springcloud101.zuul.server;
+package com.peng.zuul.server;
 
 import com.netflix.zuul.ZuulFilter;
 import com.netflix.zuul.context.RequestContext;

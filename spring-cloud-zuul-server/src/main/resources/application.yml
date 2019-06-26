@@ -3,7 +3,9 @@
 #spring.application.name=zuulserver
 #apollo.meta=http://localhost:8080
 #app.id=zuulserver
-
+logging:
+  level:
+    org.springframework: DEBUG
 server:
   port: 8866
   
@@ -85,4 +87,9 @@ security:
       user-info-uri: http://localhost:8866/auth/user
       prefer-token-info: false
       jwt:
-        key-value: fzp123
+        key-value: test123
+        key-uri: http://localhost:8599/oauth/token_key
+ignore:
+  urls[0]: /auth/**
+  urls[1]: /user/user/register
+  urls[2]: /user/user/login

@@ -1,5 +1,7 @@
 package me.josephzhu.springcloud101.auth.server;
 
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +16,7 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
@@ -76,6 +79,14 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
                  .tokenEnhancer(jwtTokenEnhancer())
                  // 配置安全认证管理
                  .authenticationManager(authenticationManager);
+        // 配置tokenServices参数
+        DefaultTokenServices tokenServices = new DefaultTokenServices();
+        tokenServices.setTokenStore(endpoints.getTokenStore());
+        tokenServices.setSupportRefreshToken(true);
+        tokenServices.setClientDetailsService(endpoints.getClientDetailsService());
+        tokenServices.setTokenEnhancer(endpoints.getTokenEnhancer());
+        tokenServices.setAccessTokenValiditySeconds((int)TimeUnit.DAYS.toSeconds(30)); // 30天
+        endpoints.tokenServices(tokenServices);
     }
     
     @Bean
@@ -83,16 +94,21 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
         return new JwtTokenStore(jwtTokenEnhancer());
     }
     
-    public static void main(String[] args) {
-		System.out.println(new BCryptPasswordEncoder().encode("123456"));
-	}
+    @Override
+    public void configure(AuthorizationServerSecurityConfigurer oauthServer) {
+        //curl -i -X POST -H "Accept: application/json" -u "client_1:123456" http://localhost:5000/oauth/check_token?token=a1478d56-ebb8-4f21-b4b6-8a9602df24ec
+        oauthServer.tokenKeyAccess("permitAll()")         //url:/oauth/token_key,exposes public key for token verification if using JWT tokens
+                   .checkTokenAccess("isAuthenticated()") //url:/oauth/check_token allow check token
+                   .allowFormAuthenticationForClients();
+    }
+    
     
     @Bean
     protected JwtAccessTokenConverter jwtTokenEnhancer() {
         // 配置jks文件
-        KeyStoreKeyFactory keyStoreKeyFactory = new KeyStoreKeyFactory(new ClassPathResource("fzp-jwt.jks"), "fzp123".toCharArray());
+        KeyStoreKeyFactory keyStoreKeyFactory = new KeyStoreKeyFactory(new ClassPathResource("test-jwt.jks"), "test123".toCharArray());
         JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-        converter.setKeyPair(keyStoreKeyFactory.getKeyPair("fzp-jwt"));
+        converter.setKeyPair(keyStoreKeyFactory.getKeyPair("test-jwt"));
         return converter;
     }
     

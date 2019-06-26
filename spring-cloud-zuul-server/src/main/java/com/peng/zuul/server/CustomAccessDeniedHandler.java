@@ -1,4 +1,4 @@
-package me.josephzhu.springcloud101.userservice.server;
+package com.peng.zuul.server;
 
 import java.io.IOException;
 

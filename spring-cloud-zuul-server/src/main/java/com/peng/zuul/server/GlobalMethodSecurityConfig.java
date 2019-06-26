@@ -1,4 +1,4 @@
-package me.josephzhu.springcloud101.userservice.server;
+package com.peng.zuul.server;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
