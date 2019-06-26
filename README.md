@@ -5,7 +5,25 @@ spring cloud 脚手架 基于Spring Cloud(Finchley版本)架构体系，整合�
 
 本脚手架目的：为减少重复架构，统一基础服务，让开发人员把重心放在各微服务的业务逻辑的开发上来。
 
-## 本项目会覆盖的组件有：
+## 本项目会覆盖的技术点有：
+
+| 技术 | 名称 | 官网 |
+|:-: | :----- | :----- |
+| Spring Cloud | 分布式微服务框架	| [https://projects.spring.io/spring-cloud/](https://projects.spring.io/spring-cloud/) |
+| Spring Boot	 | 快速应用开发Spring框架	| [https://spring.io/projects/spring-boot/](https://spring.io/projects/spring-boot/) |
+| OAuth2 | Oauth2认证服务	 | [https://spring.io/projects/spring-security-oauth/](https://spring.io/projects/spring-security-oauth/) |
+| JPA | Java持久层API | [https://spring.io/projects/spring-data-jpa](https://spring.io/projects/spring-data-jpa) |
+| Redis | 分布式缓存数据库 | [https://redis.io/](https://redis.io/) |
+| Swagger2 | REST API 接口测试框架 | [http://swagger.io/](http://swagger.io/) |
+| Maven	 | 项目构建管理	 | [http://maven.apache.org/](http://maven.apache.org/) |
+|Spring Boot Admin| 分布式微服务监控中心	| [https://github.com/codecentric/spring-boot-admin/](https://github.com/codecentric/spring-boot-admin/)|
+|Hystrix-dashboard|Hystrix的仪表盘组件|[https://github.com/spring-cloud-samples/hystrix-dashboard/](https://github.com/spring-cloud-samples/hystrix-dashboard/)
+|Turbine|Hystrix熔断聚合组件|[https://github.com/spring-cloud-samples/turbine/](https://github.com/spring-cloud-samples/turbine/)|
+|Zipkin	|分布式链路跟踪系统|[https://zipkin.io/](https://zipkin.io/)|
+|RabbitMQ|消息中间件	|[https://www.rabbitmq.com/](https://www.rabbitmq.com/)|
+
+PS：没有集成 spring cloud config 是因为实用性不好，我所了解到部分的开源的配置中心的功能比cloud config好很多，后续我会集成来自携程的apollo来作为配置中心。
+
 * Spring Cloud Netflix Zuul网关服务器 <br>
 * Spring Cloud Netflix Eureka发现服务器 <br>
 * Spring Cloud Netflix Turbine断路器监控 <br>
@@ -13,7 +31,7 @@ spring cloud 脚手架 基于Spring Cloud(Finchley版本)架构体系，整合�
 * Sping Cloud Stream + RabbitMQ做异步消息 <br>
 * Spring Data JPA做数据访问 <br>
 * Spring Cloud Security + Oauth2.0做授权与资源保护 <br>
-PS：没有集成 spring cloud config 是因为实用性不好，我所了解到部分的开源的配置中心的功能比cloud config好很多，后续我会集成来自携程的apollo来作为配置中心。
+
 
 ## 本项目使用的依赖版本是：
 * Spring Cloud - Finchley.RELEASE <br>
@@ -58,7 +76,7 @@ CREATE TABLE `user_auth` (
 * Hystrix服务断路器<br>
 * Turbine断路器监控聚合<br>
 * Stream做异步处理<br>
-* leuth和Zipkin服务调用链路监控<br>
+* sleuth和Zipkin服务调用链路监控<br>
 * Zuul服务网关和自定义过滤器<br>
 * JPA数据访问和Redisson分布式锁<br>
 * security做授权与认证<br>
