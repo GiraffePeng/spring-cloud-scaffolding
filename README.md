@@ -1,5 +1,5 @@
 # spring-cloud-scaffolding
-spring cloud 脚手架
+spring cloud 脚手架 基于Spring Cloud(Finchley版本)架构体系，整合各微服务基础组件的脚手架工程。微服务架构： Spring Cloud全家桶 + Spring boot 2.x + OAuth2 + JPA + Mysql + Redis-Redisson分布式锁 + swagger + RabbitMQ； 全方位监控：Spring Boot Admin 2.x + Turbine + Hystrix Dashboard + Zipkin
 # 目的：
 利用spring cloud生态圈里的各种组件，搭建一套完整的可实用的项目架构脚手架，只需稍加改造，就可以作为开发新项目的脚手架工程。
 
