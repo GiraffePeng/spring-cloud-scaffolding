@@ -1,5 +1,5 @@
 # spring cloud zuul 集成 swagger
-介入该项目存在zuul网关服务，需求为通过zuul统一查看各个服务的Result API文档，不再需要访问单独业务服务的地址来查阅API文档。
+介入该项目存在zuul网关服务，需求为通过zuul统一查看各个服务的REST API文档，不再需要访问单独业务服务的地址来查阅API文档。
 
 ## 引入依赖
 建议引入的swagger版本使用比较高的，此处version使用2.9.2，将该依赖引入父级pom工程中。
@@ -116,7 +116,7 @@ public class SwaggerConfig {
     }
 }
 ```
-至此zuul项目的改造完成，接下来是针对对应服务的改造，此处只提及userservice-server的改造，其中项目步骤是一致的。
+至此zuul项目的改造完成，接下来是针对对应服务的改造，此处只提及userservice-server的改造，其他业务项目步骤是一致的。
 ## 改造userservice-server 引入依赖
 因为依赖是引入在了父级pom工程中，此处无需再次依赖
 
