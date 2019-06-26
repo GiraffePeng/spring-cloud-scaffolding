@@ -27,10 +27,11 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 * spring-cloud-auth-server:认证、授权服务器。 <br>
 * spring-cloud-turbine-server:断路器监控，用于汇总Hystrix服务断路器监控流。 <br>
 * spring-cloud-admin-server:集成spring-boot-admin，用于对服务的监控，查看配置属性，日志的管理等，详见：[GITHUB:spring-boot-admin](https://github.com/codecentric/spring-boot-admin) <br>
-* spring-cloud-investservice-api、spring-cloud-projectservice-api、spring-cloud-userservice-api：接口共享方式实现的API项目，API项目不包含任何服务端实现，因此这里只是引入了feign组件。在API接口项目中，我们一般定义两个东西，一是服务接口定义，二是传输数据DTO定义。 <br>
+* spring-cloud-common：接口共享方式实现的API项目，API项目不包含任何服务端实现，因此这里只是引入了feign组件。在API接口项目中，我们一般定义，一是服务接口定义，二是传输数据DTO定义,三是公共的基础类。 <br>
 * spring-cloud-investservice-server:业务服务模块 <br>
 * spring-cloud-projectservice-server:业务服务模块 <br>
 * spring-cloud-userservice-server:业务服务模块<br>
+* spring-cloud-payservice-server:支付平台服务模块 涉及支付相关逻辑代码放入其中，目前只集成了微信的jsApi方式调用支付的方式。<br>
 * spring-cloud-projectservice-listener：业务服务模块，mq监听服务，可以和project-server合并，此处用于方便理解，进行拆分。 <br>
 * zipkin，用于做服务调用监控、收集分布式追踪信息，spring cloud 升级到Finchley.RELEASE版本、spring boot升级到2.XX版本后，zipkin官网不建议自行集成，所以提供了下载jar包进行部署的方式。搭建方式：[GITHUB:zipkin](https://github.com/openzipkin/zipkin),jar包下载地址：[zipkinjar包下载](https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/) 此处使用2.11.6版本。 <br>
 
