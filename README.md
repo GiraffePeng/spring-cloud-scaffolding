@@ -23,7 +23,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 
 ## 项目模块介绍：
 * spring-cloud-eureka-server：eureka注册与发现服务。 <br>
-* spring-cloud-zuul-server:zuul网关服务。 <br>
+* spring-cloud-zuul-server:zuul网关服务,同时作为oauth2的资源服务器，在网关层统一进行资源访问认证处理。 <br>
 * spring-cloud-auth-server:认证、授权服务器。 <br>
 * spring-cloud-turbine-server:断路器监控，用于汇总Hystrix服务断路器监控流。 <br>
 * spring-cloud-admin-server:集成spring-boot-admin，用于对服务的监控，查看配置属性，日志的管理等，详见：[GITHUB:spring-boot-admin](https://github.com/codecentric/spring-boot-admin) <br>
