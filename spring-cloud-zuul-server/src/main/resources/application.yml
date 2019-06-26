@@ -93,3 +93,8 @@ ignore:
   urls[0]: /auth/**
   urls[1]: /user/user/register
   urls[2]: /user/user/login
+  urls[3]: /swagger-resources/**
+  urls[4]: /swagger-ui.html
+  urls[5]: /*/v2/api-docs
+  urls[6]: /swagger/api-docs
+  urls[7]: /webjars/**
