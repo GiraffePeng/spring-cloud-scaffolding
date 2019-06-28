@@ -42,7 +42,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 
 
 ## 项目模块介绍：
-* spring-cloud-eureka-server：eureka注册与发现服务。 <br>
+* spring-cloud-eureka-server：平台服务注册与发现服务中心。 <br>
 * spring-cloud-zuul-server:[zuul网关服务](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-zuul-server/README.md),同时作为oauth2的资源服务器，在网关层统一进行资源访问认证处理。 <br>
 * spring-cloud-auth-server:认证、授权服务器。 <br>
 * spring-cloud-turbine-server:断路器监控，用于汇总Hystrix服务断路器监控流。 <br>
@@ -54,6 +54,30 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 * spring-cloud-payservice-server:支付平台服务模块 涉及支付相关逻辑代码放入其中，目前只集成了微信的jsApi方式调用支付的方式。<br>
 * spring-cloud-projectservice-listener：业务服务模块，mq监听服务，可以和project-server合并，此处用于方便理解，进行拆分。 <br>
 * zipkin，用于做服务调用监控、收集分布式追踪信息，spring cloud 升级到Finchley.RELEASE版本、spring boot升级到2.XX版本后，zipkin官网不建议自行集成，所以提供了下载jar包进行部署的方式。搭建方式：[GITHUB:zipkin](https://github.com/openzipkin/zipkin),jar包下载地址：[zipkinjar包下载](https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/) 此处使用2.11.6版本。 <br>
+
+=======================================================
+### 平台服务注册与发现服务中心(spring-cloud-eureka-server)
+参考链接：[详细说明](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-eureka-server/README.md)
+```
+eureka-service支持单点和集群模式
+1、单点：http://localhost:8865/eureka/
+2、集群：
+因为在同一台机器上其中三个集群,所以需要配置下hosts文件
+加入：
+127.0.0.1 cluster1
+127.0.0.1 cluster2
+127.0.0.1 cluster3
+
+集群cluster1启动： java -jar spring-cloud-eureka-server-1.0-SNAPSHOT.jar --spring.profiles.active=cluster1
+对应服务：http://localhost:8861/eureka/
+
+集群cluster2启动： java -jar spring-cloud-eureka-server-1.0-SNAPSHOT.jar --spring.profiles.active=cluster2
+对应服务：http://localhost:8862/eureka/
+
+集群cluster3启动： java -jar spring-cloud-eureka-server-1.0-SNAPSHOT.jar --spring.profiles.active=cluster3
+对应服务：http://localhost:8863/eureka/
+```
+
 
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
