@@ -1,8 +1,96 @@
 # 网关服务
+* 可在网关层加入各种过滤器，达到转发实际服务器前的一系列操作。
 * 作为所有接口请求入口，负责进行请求的流量转发。
 * 同时作为资源认证服务，将需要带有令牌访问的接口进行认证，如果不符合要求，进行返回错误信息。
 
-资源服务配置如下：
+## 搭建网关服务
+搭建最基本的zuul网关
+* 1、配置pom.xml，添加spring-cloud-starter-zuul的依赖
+* 2、配置application.yml，设置分流操作
+* 3、配置启动类，添加@EnableZuulProxy注解，开启动态路由
+* 4、配置过滤器，实现ZuulFilter抽象类
+* 5、配置过滤器到启动类。
+第4和第5步，不是非必须的，而是自定义过滤器的操作
+
+这里就不过多描述
+
+## zuul的自定义请求过滤
+zuul还能进行请求过滤，演这里示了一个授权校验的例子，检查请求是否提供了token参数，如果没有的话拒绝转发服务，返回401响应状态码和错误信息，首先我们需要先新建一个TokenFilter类来继承ZuulFilter这个类，实现它的四个接口
+```
+@Component
+public class TokenFilter extends ZuulFilter {
+	
+	/**
+	 * 四种类型：pre,routing,error,post
+    pre：主要用在路由映射的阶段是寻找路由映射表的
+    routing:具体的路由转发过滤器是在routing路由器，具体的请求转发的时候会调用
+    error:一旦前面的过滤器出错了，会调用error过滤器。
+    post:当routing，error运行完后才会调用该过滤器，是在最后阶段的
+	 */
+    @Override
+    public String filterType() {
+        return PRE_TYPE;
+    }
+    
+    //自定义过滤器执行的顺序，数值越大越靠后执行，越小就越先执行
+    @Override
+    public int filterOrder() {
+        return PRE_DECORATION_FILTER_ORDER - 1;
+    }
+
+    //控制过滤器生效不生效，可以在里面写一串逻辑来控制
+    @Override
+    public boolean shouldFilter() {
+        return true;
+    }
+    
+    //执行过滤逻辑
+    @Override
+    public Object run() throws ZuulException {
+        RequestContext ctx = RequestContext.getCurrentContext();
+        
+        HttpServletRequest request = ctx.getRequest();
+        String token = request.getParameter("token");
+        if(token == null) {
+            ctx.setSendZuulResponse(false);
+            ctx.setResponseStatusCode(401);
+            try {
+                ctx.getResponse().setCharacterEncoding("UTF-8");
+                ctx.getResponse().getWriter().write("禁止访问");
+            } catch (Exception e){}
+
+            return null;
+        }
+        return null;
+    }
+}
+```
+filterType：返回一个字符串代表过滤器的类型，在zuul中定义了四种不同生命周期的过滤器类型，具体如下：
+* 1.pre：可以在请求被路由之前调用，用在路由映射的阶段是寻找路由映射表的
+* 2.route：在路由请求时候被调用，具体的路由转发过滤器是在routing路由器具体的请求转发的时候会调用
+* 3.error：处理请求时发生错误时被调用
+* 4.post：当routing，error运行完后才会调用该过滤器，是在最后阶段的
+
+然后接下来注册过滤器到启动类
+```
+@SpringBootApplication
+@EnableZuulProxy
+@EnableDiscoveryClient
+public class ZuulServerApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run( ZuulServerApplication.class, args );
+    }
+    
+    @Bean
+    public TokenFilter getZuulFilter(){
+        return new TokenFilter();
+    }
+}
+```
+
+## 利用oauth2.0统一鉴权：
+实现资源服务器，继承ResourceServerConfigurerAdapter
 ```
 @Configuration
 @EnableResourceServer
