@@ -8,11 +8,11 @@ logging:
     org.springframework: DEBUG
 server:
   port: 8866
-  
-ribbon:  
-  ReadTimeout: 6000
-  ConnectTimeout: 6000
-  
+
+ribbon:
+  ReadTimeout: 3000
+  ConnectTimeout: 2000
+
 spring:
   application:
     name: zuulserver
@@ -25,7 +25,10 @@ spring:
       enabled: true
     sampler:
       probability: 1.0
-
+  redis:
+    host: localhost
+    database: 0
+    port: 6379
 eureka:
   client:
     serviceUrl:
@@ -33,6 +36,14 @@ eureka:
     registry-fetch-interval-seconds: 5
 
 zuul:
+# 集成限流，打开注释 为所有服务进行限流,3秒内只能请求1次,并且请求时间总数不能超过5秒
+#  ratelimit:
+#    enabled: true
+#    repository: REDIS
+#    default-policy:
+#      limit: 1
+#      quota: 5
+#      refresh-interval: 3
   host:
     connect-timeout-millis: 10000
     socket-timeout-millis: 60000
@@ -49,13 +60,9 @@ zuul:
     auth:
       path: /auth/**
       serviceId: auth-service
-    host:
-      socket-timeout-millis: 60000
-      connect-timeout-millis: 60000
   add-proxy-headers: true
   sensitive-headers:
   retryable: true
-  ignored-services: '*'
 
 management:
   endpoints:
@@ -66,15 +73,18 @@ management:
   endpoint:
     health:
       show-details: always
-
+feign:
+  hystrix:
+    enabled: true
 hystrix:
-    command:
-        default:
-            execution:
-                isolation:
-                    thread:
-                        timeout-in-milliseconds: 5000
-                        
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          thread:
+            timeoutInMilliseconds: 10000
 security:
   basic:
     enabled: false
@@ -98,3 +108,4 @@ ignore:
   urls[5]: /*/v2/api-docs
   urls[6]: /swagger/api-docs
   urls[7]: /webjars/**
+  urls[8]: /zuulRoute/refresh

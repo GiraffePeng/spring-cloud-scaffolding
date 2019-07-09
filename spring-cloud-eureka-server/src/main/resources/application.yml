@@ -1,3 +1,4 @@
+#单点模式
 server:
   port: 8865
 
@@ -7,9 +8,9 @@ eureka:
   client:
     registry-fetch-interval-seconds: 5
     registerWithEureka: false
-    fetchRegistry: true
+    fetchRegistry: false
     serviceUrl:
-      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+      defaultZone: http://localhost:8865/eureka/
   server:
     enable-self-preservation: true
     eviction-interval-timer-in-ms: 5000
@@ -17,3 +18,70 @@ eureka:
 spring:
   application:
     name: eurka-server
+
+---
+#集群模式
+spring:
+  application:
+    name: eurka-server
+  profiles: cluster1
+
+server:
+  port: 8861
+
+eureka:
+  instance:
+    hostname: cluster1
+  client:
+    registry-fetch-interval-seconds: 5
+#表示是否将自己注册到eureka server，因为要构建集群环境，需要将自己注册到及群众，所以应该开启。默认为true，可不显式设置。
+    registerWithEureka: true
+#表示是否从eureka server获取注册信息，如果是单一节点，不需要同步其他eureka server节点，则可以设置为false，但此处为集群，应该设置为true，默认为true，可不设置。
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://cluster2:8862/eureka/,http://cluster3:8863/eureka/
+  server:
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 5000
+---
+spring:
+  application:
+    name: eurka-server
+  profiles: cluster2
+
+server:
+  port: 8862
+
+eureka:
+  instance:
+    hostname: cluster2
+  client:
+    registry-fetch-interval-seconds: 5
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://cluster1:8861/eureka/,http://cluster3:8863/eureka/
+  server:
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 5000
+---
+spring:
+  application:
+    name: eurka-server
+  profiles: cluster3
+
+server:
+  port: 8863
+
+eureka:
+  instance:
+    hostname: cluster3
+  client:
+    registry-fetch-interval-seconds: 5
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://cluster1:8861/eureka/,http://cluster2:8862/eureka/
+  server:
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 5000
