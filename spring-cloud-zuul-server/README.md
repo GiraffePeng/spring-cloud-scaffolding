@@ -1,8 +1,13 @@
 # 网关服务
-* 可在网关层加入各种过滤器，达到转发实际服务器前的一系列操作。
-* 作为所有接口请求入口，负责进行请求的流量转发。
-* 同时作为资源认证服务，将需要带有令牌访问的接口进行认证，如果不符合要求，进行返回错误信息。
-
+* 路由分发,作为所有接口请求入口，负责进行请求的流量转发
+* 动态路由配置与更新，可以将路由配置移至redis或者DB中，达到实时改变路由配置。
+* Ribbon均衡负载
+* 统一的zuul网关层异常处理，方便调用方统一的异常数据解析处理
+* 请求限流,将阈值写入配置，动态配置限流的阈值大小
+* 服务层级熔断降级，服务宕机后，可及时进行熔断处理，防止服务器雪崩
+* Swagger API文档，在线实时生成接口文档以及接口测试，
+* zuul过滤器,可在网关层加入各种过滤器，达到转发实际服务器前的一系列操作
+* zuul网关层身份认证(oauth2.0),作为资源认证服务，将需要带有令牌访问的接口进行认证，如果不符合要求，进行返回错误信息
 ## 搭建网关服务
 搭建最基本的zuul网关
 * 1、配置pom.xml，添加spring-cloud-starter-zuul的依赖
@@ -13,6 +18,197 @@
 第4和第5步，不是非必须的，而是自定义过滤器的操作
 
 这里就不过多描述
+## 动态路由配置与更新
+在没有集成cloud或者apollo等配置中心时，无法做到配置的热更新，但是我们想动态的去更改zuul的路由信息时，可以采用以下方式:
+### 从redis中获取路由信息
+集成各种配置进行实例化，调用DynamicRouteLocator的构造函数，修改路由信息。
+```
+/**
+ * 动态路由配置类
+ */
+@Configuration
+public class DynamicRouteConfiguration {
+    private Registration registration;
+    private DiscoveryClient discovery;
+    private ZuulProperties zuulProperties;
+    private ServerProperties server;
+    private RedisTemplate redisTemplate;
+
+    public DynamicRouteConfiguration(Registration registration, DiscoveryClient discovery,
+                                     ZuulProperties zuulProperties, ServerProperties server, RedisTemplate redisTemplate) {
+        this.registration = registration;
+        this.discovery = discovery;
+        this.zuulProperties = zuulProperties;
+        this.server = server;
+        this.redisTemplate = redisTemplate;
+    }
+
+    @Bean
+    public DynamicRouteLocator dynamicRouteLocator() {
+        return new DynamicRouteLocator(server.getServlet().getServletPrefix()
+                , discovery
+                , zuulProperties
+                , registration
+                , redisTemplate);
+    }
+}
+```
+DynamicRouteLocator类集成DiscoveryClientRouteLocator，重写路由配置
+```
+/**
+ * 动态路由实现
+ */
+@Slf4j
+public class DynamicRouteLocator extends DiscoveryClientRouteLocator {
+    private ZuulProperties properties;
+    private RedisTemplate redisTemplate;
+
+    public DynamicRouteLocator(String servletPath, DiscoveryClient discovery, ZuulProperties properties,
+                               ServiceInstance localServiceInstance, RedisTemplate redisTemplate) {
+        super(servletPath, discovery, properties, localServiceInstance);
+        this.properties = properties;
+        this.redisTemplate = redisTemplate;
+    }
+
+    /**
+     * 重写路由配置
+     * <p>
+     * 1. properties 配置。
+     * 2. eureka 默认配置。
+     * 3. DB数据库配置。
+     * 4. redis自定义数据格式配置
+     * @return 
+     */
+    @Override
+    protected LinkedHashMap<String, ZuulProperties.ZuulRoute> locateRoutes() {
+        LinkedHashMap<String, ZuulProperties.ZuulRoute> routesMap = new LinkedHashMap<>();
+        //读取properties配置、eureka默认配置
+        routesMap.putAll(super.locateRoutes());
+        log.debug("初始默认的路由配置完成");
+        routesMap.putAll(locateRoutesFromDb());
+        LinkedHashMap<String, ZuulProperties.ZuulRoute> values = new LinkedHashMap<>();
+        for (Map.Entry<String, ZuulProperties.ZuulRoute> entry : routesMap.entrySet()) {
+            String path = entry.getKey();
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+            if (StringUtils.isNotBlank(this.properties.getPrefix())) {
+                path = this.properties.getPrefix() + path;
+                if (!path.startsWith("/")) {
+                    path = "/" + path;
+                }
+            }
+            values.put(path, entry.getValue());
+        }
+        return values;
+    }
+    
+	/**
+     * Redis中保存的，没有从系统模块取，避免启动链路依赖问题（取舍），网关依赖业务模块的问题
+     *
+     * @return
+     */
+    private Map<String, ZuulProperties.ZuulRoute> locateRoutesFromDb() {
+        Map<String, ZuulProperties.ZuulRoute> routes = new LinkedHashMap<>();
+        //从redis中获取路由信息
+        String obj = (String)redisTemplate.opsForValue().get("_ROUTE_KEY");
+        if (obj == null) {
+            return routes;
+        }
+	//转换为ZuulRoute集合
+        List<ZuulRoute> results = JSONObject.parseArray(obj, ZuulRoute.class);
+		//List<ZuulRoute> results = (List<ZuulRoute>) obj;
+        //循环路由集合，给zuulRoute赋值，并装进Map集合中
+	for (ZuulRoute result : results) {
+            if (StringUtils.isBlank(result.getPath()) && StringUtils.isBlank(result.getUrl())) {
+                continue;
+            }
+            ZuulProperties.ZuulRoute zuulRoute = new ZuulProperties.ZuulRoute();
+            try {
+                zuulRoute.setId(result.getServiceId());
+                zuulRoute.setPath(result.getPath());
+                zuulRoute.setServiceId(result.getServiceId());
+                zuulRoute.setRetryable(StringUtils.equals(result.getRetryable(), "0") ? Boolean.FALSE : Boolean.TRUE);
+                zuulRoute.setStripPrefix(StringUtils.equals(result.getStripPrefix(), "0") ? Boolean.FALSE : Boolean.TRUE);
+                zuulRoute.setUrl(result.getUrl());
+                if (StringUtils.isNotBlank(result.getSensitiveheadersList())) {
+                	String[] split = result.getSensitiveheadersList().split(",");
+                	Set<String> sensitiveHeaderSet = new HashSet<String>();
+                    for (int i = 0; i < split.length; i++) {
+                    	sensitiveHeaderSet.add(split[i]);
+					}
+                    zuulRoute.setSensitiveHeaders(sensitiveHeaderSet);
+                    zuulRoute.setCustomSensitiveHeaders(true);
+                }
+            } catch (Exception e) {
+                log.error("从缓存加载路由配置异常", e);
+            }
+            log.debug("添加自定义的路由配置,path：{}，serviceId:{}", zuulRoute.getPath(), zuulRoute.getServiceId());
+            routes.put(zuulRoute.getPath(), zuulRoute);
+        }
+        return routes;
+    }
+}
+```
+ZuulRoute路由实体类
+```
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ZuulRoute implements Serializable{
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * router Id
+     */
+    private Integer id;
+    /**
+     * 路由路径
+     */
+    private String path;
+    /**
+     * 服务名称
+     */
+    private String serviceId;
+    /**
+     * url代理
+     */
+    private String url;
+    /**
+     * 转发去掉前缀
+     */
+    private String stripPrefix;
+    /**
+     * 是否重试
+     */
+    private String retryable;
+    /**
+     * 是否启用
+     */
+    private String enabled;
+    /**
+     * 敏感请求头
+     */
+    private String sensitiveheadersList;
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+    /**
+     * 更新时间
+     */
+    private Date updateTime;
+    /**
+     * 删除标识（0-正常,1-删除）
+     */
+    private String delFlag;
+
+
+}
+```
+
 
 ## zuul的自定义请求过滤
 zuul还能进行请求过滤，演这里示了一个授权校验的例子，检查请求是否提供了token参数，如果没有的话拒绝转发服务，返回401响应状态码和错误信息，首先我们需要先新建一个TokenFilter类来继承ZuulFilter这个类，实现它的四个接口
