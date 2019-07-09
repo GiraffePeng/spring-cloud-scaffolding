@@ -1,9 +1,8 @@
 # spring-cloud-scaffolding
-spring cloud 脚手架 基于Spring Cloud(Finchley版本)架构体系，整合各微服务基础组件的脚手架工程。微服务架构： Spring Cloud全家桶 + Spring boot 2.x + OAuth2 + JPA + Mysql + Redis-Redisson分布式锁 + swagger + RabbitMQ； 全方位监控：Spring Boot Admin 2.x + Turbine + Hystrix Dashboard + Zipkin
-# 目的：
+spring cloud 脚手架集成Spring Cloud(Finchley版本)体系，整合了各微服务常用到的基础组件。
 利用spring cloud生态圈里的各种组件，搭建一套完整的可实用的项目架构脚手架，只需稍加改造，就可以作为开发新项目的脚手架工程。
 
-本脚手架目的：为减少重复架构，统一基础服务，让开发人员把重心放在各微服务的业务逻辑的开发上来。
+本脚手架目的：减少架构层次的搭建时间,提供一个脚手架可用于拓展，在此脚手架上可以进行业务代码的开发。
 
 ## 本项目会覆盖的技术点有：
 
@@ -21,6 +20,7 @@ spring cloud 脚手架 基于Spring Cloud(Finchley版本)架构体系，整合�
 |Turbine|Hystrix熔断聚合组件|[https://github.com/spring-cloud-samples/turbine/](https://github.com/spring-cloud-samples/turbine/)|
 |Zipkin	|分布式链路跟踪系统|[https://zipkin.io/](https://zipkin.io/)|
 |RabbitMQ|消息中间件	|[https://www.rabbitmq.com/](https://www.rabbitmq.com/)|
+|Ratelimit|网关限流框架|[https://github.com/marcosbarbero/spring-cloud-zuul-ratelimit/](https://github.com/marcosbarbero/spring-cloud-zuul-ratelimit/)|
 
 PS：没有集成 spring cloud config 是因为实用性不好，我所了解到部分的开源的配置中心的功能比cloud config好很多，后续我会集成来自携程的apollo来作为配置中心。
 
@@ -43,7 +43,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 
 ## 项目模块介绍：
 * spring-cloud-eureka-server：平台服务注册与发现服务中心。 <br>
-* spring-cloud-zuul-server:[zuul网关服务](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-zuul-server/README.md),同时作为oauth2的资源服务器，在网关层统一进行资源访问认证处理。 <br>
+* spring-cloud-zuul-server:zuul网关服务 <br>
 * spring-cloud-auth-server:认证、授权服务器。 <br>
 * spring-cloud-turbine-server:断路器监控，用于汇总Hystrix服务断路器监控流。 <br>
 * spring-cloud-admin-server:集成spring-boot-admin，用于对服务的监控，查看配置属性，日志的管理等，详见：[GITHUB:spring-boot-admin](https://github.com/codecentric/spring-boot-admin) <br>
@@ -57,7 +57,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 
 =======================================================
 ### 平台服务注册与发现服务中心(spring-cloud-eureka-server)
-参考链接：[详细说明](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-eureka-server/README.md)
+详情链接：[详细说明](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-eureka-server/README.md)
 ```
 eureka-service支持单点和集群模式
 1、单点：http://localhost:8865/eureka/
@@ -77,7 +77,19 @@ eureka-service支持单点和集群模式
 集群cluster3启动： java -jar spring-cloud-eureka-server-1.0-SNAPSHOT.jar --spring.profiles.active=cluster3
 对应服务：http://localhost:8863/eureka/
 ```
+### 网关服务(spring-cloud-zuul-server)
+详情链接：[zuul网关服务](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-zuul-server/README.md)
 
+大体功能如下：
+* 路由分发
+* 动态路由配置与更新
+* Ribbon均衡负载
+* 统一的zuul网关层异常处理
+* 请求限流
+* 服务层级熔断降级
+* Swagger API文档
+* zuul过滤器
+* zuul网关层身份认证(oauth2.0)
 
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
