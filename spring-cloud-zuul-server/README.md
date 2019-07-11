@@ -8,7 +8,7 @@
 * Swagger API文档，在线实时生成接口文档以及接口测试，
 * zuul过滤器,可在网关层加入各种过滤器，达到转发实际服务器前的一系列操作
 * zuul网关层身份认证(oauth2.0),作为资源认证服务，将需要带有令牌访问的接口进行认证，如果不符合要求，进行返回错误信息
-## 搭建网关服务
+## 一、搭建网关服务
 搭建最基本的zuul网关
 * 1、配置pom.xml，添加spring-cloud-starter-zuul的依赖
 * 2、配置application.yml，设置分流操作
@@ -18,7 +18,7 @@
 第4和第5步，不是非必须的，而是自定义过滤器的操作
 
 这里就不过多描述
-## 动态路由配置与更新
+## 二、动态路由配置与更新
 在没有集成cloud或者apollo等配置中心时，无法做到配置的热更新，但是我们想动态的去更改zuul的路由信息时，可以采用以下方式:
 ### 从redis中获取路由信息
 集成各种配置进行实例化，调用DynamicRouteLocator的构造函数，修改路由信息。
@@ -273,7 +273,7 @@ CREATE TABLE `sys_zuul_route` (
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COMMENT='动态路由配置表';
 ```
 这里不在具体展示从数据库中如何获取路由，大体思路为，集成mybatis或者jpa，在DynamicRouteLocator类中查询该表的数据，进行转换为List\<ZuulRoute\>即可。
-## 统一的zuul网关层异常处理
+## 三、统一的zuul网关层异常处理
 在没有对网关错误进行特殊处理时，通过网关调用其他服务出现错误会出现如下错误信息：
 ```
 {
@@ -340,7 +340,7 @@ public class ErrorResult implements Serializable{
 }
 ```
 
-## zuul的请求过滤器
+## 四、zuul的请求过滤器
 zuul还能进行请求过滤，演这里示了一个授权校验的例子，检查请求是否提供了token参数，如果没有的话拒绝转发服务，返回401响应状态码和错误信息，首先我们需要先新建一个TokenFilter类来继承ZuulFilter这个类，实现它的四个接口
 ```
 @Component
@@ -415,7 +415,7 @@ public class ZuulServerApplication {
 }
 ```
 
-## 利用oauth2.0统一鉴权：
+## 五、利用oauth2.0统一鉴权：
 实现资源服务器，继承ResourceServerConfigurerAdapter
 ```
 @Configuration
