@@ -54,6 +54,8 @@ public class DynamicRouteConfiguration {
 }
 ```
 DynamicRouteLocator类集成DiscoveryClientRouteLocator，重写路由配置
+
+ps:这里zuul网关会自动去轮询调用locateRoutesFromDb方法来获取最新的路由配置信息，无须关注是否要触发更新，只关注如何取路由信息和更新路由数据即可。
 ```
 /**
  * 动态路由实现
@@ -208,9 +210,137 @@ public class ZuulRoute implements Serializable{
 
 }
 ```
+### 在redis中放入路由信息
+建立controller，注入RedisTemplate,提供接口放入路由信息,代码如下：
+```
+@RestController
+public class ProjectServiceController {
 
+    @Autowired
+    RedisTemplate redisTemplate;
+    
+    private final static String ZUUL_ROUTE = "_ROUTE_KEY";
 
-## zuul的自定义请求过滤
+    /**
+     * 通过传递参数修改redis中的路由信息
+     * path：路由路径
+     * serviceId：服务名称
+     * stripPrefix：转发去掉前缀
+     * enabled：是否启用
+     * retryable：是否重试
+     * 来动态变更路由消息。
+     * @param zuulRoutes
+     */
+    @PostMapping("/zuulRoute/refresh")
+    public void refreshZuulRoute(@RequestBody List<ZuulRoute> zuulRoutes){
+    	for (ZuulRoute zuulRoute : zuulRoutes) {
+    		if(StringUtils.isBlank(zuulRoute.getPath()) || StringUtils.isBlank(zuulRoute.getServiceId())) {
+        		throw new RuntimeException("路由更新传入的参数缺失");
+        	}
+        	if(StringUtils.isBlank(zuulRoute.getStripPrefix()) || !(zuulRoute.getStripPrefix().equals("1") || zuulRoute.getStripPrefix().equals("0"))) {
+        		throw new RuntimeException("路由更新传入的参数缺失");
+        	}
+        	if(StringUtils.isBlank(zuulRoute.getEnabled()) || !(zuulRoute.getEnabled().equals("1") || zuulRoute.getEnabled().equals("0"))) {
+        		throw new RuntimeException("路由更新传入的参数缺失");
+        	}
+        	if(StringUtils.isBlank(zuulRoute.getRetryable()) || !(zuulRoute.getRetryable().equals("1") || zuulRoute.getRetryable().equals("0"))) {
+        		throw new RuntimeException("路由更新传入的参数缺失");
+        	}
+		}
+    	ValueOperations opsForValue = redisTemplate.opsForValue();
+    	opsForValue.set(ZUUL_ROUTE, JSONObject.toJSONString(zuulRoutes));
+    }
+}
+```
+### 从关系型数据库中获取路由信息
+除了使用redis，还可以使用关系型数据库获取路由信息，通过更改数据库表中的路由信息，进行动态加载。
+
+以mysql数据库为例，数据库表结构如下：
+```
+CREATE TABLE `sys_zuul_route` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'router Id',
+  `path` varchar(255) CHARACTER SET utf8mb4 NOT NULL COMMENT '路由路径',
+  `service_id` varchar(255) CHARACTER SET utf8mb4 NOT NULL COMMENT '服务名称',
+  `url` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL COMMENT 'url代理',
+  `strip_prefix` char(1) CHARACTER SET utf8mb4 DEFAULT '1' COMMENT '转发去掉前缀',
+  `retryable` char(1) CHARACTER SET utf8mb4 DEFAULT '1' COMMENT '是否重试',
+  `enabled` char(1) CHARACTER SET utf8mb4 DEFAULT '1' COMMENT '是否启用',
+  `sensitiveHeaders_list` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL COMMENT '敏感请求头',
+  `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` timestamp NULL DEFAULT NULL COMMENT '更新时间',
+  `del_flag` char(1) CHARACTER SET utf8mb4 DEFAULT '0' COMMENT '删除标识（0-正常,1-删除）',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COMMENT='动态路由配置表';
+```
+这里不在具体展示从数据库中如何获取路由，大体思路为，集成mybatis或者jpa，在DynamicRouteLocator类中查询该表的数据，进行转换为List\<ZuulRoute\>即可。
+## 统一的zuul网关层异常处理
+在没有对网关错误进行特殊处理时，通过网关调用其他服务出现错误会出现如下错误信息：
+```
+{
+    "timestamp": "2019-07-11T06:11:46.557+0000",
+    "status": 500,
+    "error": "Internal Server Error",
+    "message": "GENERAL"
+}
+```
+当我们要求对返回结果有统一的成功或者失败格式时，这种错误返回格式就会不满足我们的需要，我们需要进行改造。
+修改网关的异常返回信息的方式有很多，这里选择比较简单的，直接通过实现ErrorController接口，重写getErrorPath()方法，将至引导到自己实现的异常处理方法上，代码如下：
+```
+/**
+ * zuul网关层统一的异常处理，错误返回格式的修改
+ */
+@RestController
+public class ErrorHandler implements ErrorController{
+	
+    private final ErrorAttributes errorAttributes;
+	 
+    @Autowired
+    public ErrorHandler(ErrorAttributes errorAttributes) {
+    	this.errorAttributes = errorAttributes;
+    }
+
+    @RequestMapping(value = "/error", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ErrorResult error(HttpServletRequest request) {
+    	WebRequest webRequest = new ServletWebRequest(request);
+	Map<String, Object> errorAttributes = this.errorAttributes.getErrorAttributes(webRequest, true);
+	String msg = errorAttributes.getOrDefault("error", "not found").toString();
+	String code = errorAttributes.getOrDefault("status", 404).toString();
+	return ErrorResult.builder().code(Integer.valueOf(code)).msg(msg).build();
+    }
+    
+    //重写getErrorPath()方法，将至引导到自己实现的异常处理方法上
+    @Override
+    public String getErrorPath() {
+    	return "/error";
+    }
+}
+```
+ErrorResult异常数据封装类
+```
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class ErrorResult implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	private Integer code;
+	
+	private String msg;
+}
+```
+重启zuul网关服务，调用接口报错提示内容如下：
+```
+{
+    "code": 500,
+    "msg": "Internal Server Error"
+}
+```
+
+## zuul的请求过滤器
 zuul还能进行请求过滤，演这里示了一个授权校验的例子，检查请求是否提供了token参数，如果没有的话拒绝转发服务，返回401响应状态码和错误信息，首先我们需要先新建一个TokenFilter类来继承ZuulFilter这个类，实现它的四个接口
 ```
 @Component
