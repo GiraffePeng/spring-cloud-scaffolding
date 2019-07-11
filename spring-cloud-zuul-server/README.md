@@ -414,8 +414,149 @@ public class ZuulServerApplication {
     }
 }
 ```
+## 五、网关请求限流
 
-## 五、利用oauth2.0统一鉴权：
+RateLimiter是Google开源的实现了令牌桶算法的限流工具（速率限制器）。
+令牌桶的大体算法逻辑如下：
+![](https://user-gold-cdn.xitu.io/2019/7/11/16be04e48339eb87?w=447&h=295&f=png&s=46333)
+* a.按特定的速率向令牌桶投放令牌
+* b.根据预设的匹配规则先对报文进行分类，不符合匹配规则的报文不需要经过令牌桶的处理，直接发送；
+* c.符合匹配规则的报文，则需要令牌桶进行处理。当桶中有足够的令牌则报文可以被继续发送下去，同时令牌桶中的令牌 量按报文的长度做相应的减少；
+* d.当令牌桶中的令牌不足时，报文将不能被发送，只有等到桶中生成了新的令牌，报文才可以发送。这就可以限制报文的流量只能是小于等于令牌生成的速度，达到限制流量的目的。
+Spring Cloud Zuul RateLimiter结合Zuul对RateLimiter进行了封装，通过实现ZuulFilter提供了服务限流功能.
+
+| 限流粒度/类型 | 说明 |
+|------|------------|
+| 服务粒度  | 默认配置，当前服务模块的限流控制 |
+| 用户粒度  | 针对请求的用户进行限流 |
+| ORIGIN粒度  | 用户请求的origin作为粒度控制 |
+| 接口URL粒度  | 请求接口的地址作为粒度控制 |
+
+以上粒度自由组合，又可以支持多种情况。
+如果还不够，自定义RateLimitKeyGenerator实现。
+
+因为使用到令牌桶算法，作为令牌桶的容器，也支持多个，分别为：
+* InMemoryRateLimiter - 使用 ConcurrentHashMap作为数据存储
+* ConsulRateLimiter - 使用 Consul 作为数据存储
+* RedisRateLimiter - 使用 Redis 作为数据存储
+* SpringDataRateLimiter - 使用 数据库 作为数据存储
+
+集成Spring Cloud Zuul RateLimiter的步骤非常简单，大体分为三步：
+* 1、引入pom依赖
+* 2、修改yml配置文件，加入限流规则
+* 3、如果提供的已有限流规则不满足条件，可以自定义(该步可省略)
+
+### 引入pom依赖
+```
+<dependency>
+	<groupId>com.marcosbarbero.cloud</groupId>
+    	<artifactId>spring-cloud-zuul-ratelimit</artifactId>
+   	<version>2.0.4.RELEASE</version>
+</dependency>
+```
+### 修改yml配置文件，加入限流规则
+```
+#为所有服务进行限流,3秒内只能请求1次,并且请求时间总数不能超过5秒
+zuul:
+  ratelimit:
+#开启限流 
+    enabled: true
+#令牌桶的容器方式，使用redis
+    repository: REDIS
+#默认全部服务开启限流, default-policy
+    default-policy:
+#限制请求次数
+      limit: 1
+#限制请求时间
+      quota: 5
+#多少秒后重置令牌桶
+      refresh-interval: 3
+```
+开启限流后访问服务，3秒内第二次请求会出现如下错误：
+```
+{
+    "code": 429,
+    "msg": "Too Many Requests"
+}
+```
+## 六、网关服务级别的熔断处理
+针对服务级别层次进行熔断处理，代码如下：
+```
+/**
+ * 定制服务级别的熔断处理
+ */
+@Component
+public class ZuulRoteFallback implements FallbackProvider{
+
+	/**
+	 * 指定针对哪个服务进行熔断处理
+	 */
+	@Override
+	public String getRoute() {
+		//指定针对哪个服务进行熔断处理
+		return "userservice";
+	}
+
+	@Override
+	public ClientHttpResponse fallbackResponse(String route, Throwable cause) {
+		return new ClientHttpResponse() {
+			
+			@Override
+			public HttpHeaders getHeaders() {
+				HttpHeaders headers = new HttpHeaders();
+               			headers.setContentType(MediaType.APPLICATION_JSON);
+                		return headers;
+			}
+			
+			/**
+			 * 熔断后返回的内容
+			 */
+			@Override
+			public InputStream getBody() throws IOException {
+				JSONObject jsonObject = new JSONObject();
+				jsonObject.put("code", 500);
+				jsonObject.put("msg", "用户服务不可用,请稍后重试");
+				return new ByteArrayInputStream(jsonObject.toJSONString().getBytes());
+			}
+			
+			@Override
+			public String getStatusText() throws IOException {
+				return this.getStatusCode().getReasonPhrase();
+			}
+			
+			@Override
+			public HttpStatus getStatusCode() throws IOException {
+				return HttpStatus.OK;
+			}
+			
+			@Override
+			public int getRawStatusCode() throws IOException {
+				return this.getStatusCode().value();
+			}
+			
+			@Override
+			public void close() {
+				
+			}
+		};
+	}
+
+}
+```
+需要注意的地方有三处：
+* 1、实现FallbackProvider接口 重写两个方法。
+* 2、getRoute()方法指定需要对哪个服务进行熔断处理，如果配置为\*，则表示对所有服务进行熔断处理。
+* 3、ClientHttpResponse中的getBody()指定熔断后提示的错误信息,自己根据系统要求自定义即可。
+
+当userservice不可用时，提示如下信息：
+```
+{
+    "msg": "用户服务不可用,请稍后重试",
+    "code": 500
+}
+```
+
+## 七、利用oauth2.0统一鉴权：
 实现资源服务器，继承ResourceServerConfigurerAdapter
 ```
 @Configuration
