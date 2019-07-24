@@ -93,9 +93,14 @@ eureka-service支持单点和集群模式
 
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
-表结构如下：<br>
-```
+* role_auth表，存放了用户的权限信息
+* oauth_approvals授权批准表，存放了用户授权第三方服务器的批准情况
+* oauth_client_details，客户端信息表，存放客户端的ID、密码、权限、允许访问的资源服务器ID以及允许使用的授权模式等信息
+* oauth_code授权码表，存放了授权码
 
+表结构如下：
+
+```
 CREATE TABLE `user_auth` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `password` varchar(255) DEFAULT NULL,
@@ -104,7 +109,51 @@ CREATE TABLE `user_auth` (
   UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='用户表';
 
+CREATE TABLE `role_auth` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `authority` varchar(255) NOT NULL,
+  `user_id` bigint(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`authority`)
+) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8 COMMENT='用户角色表';
+
+CREATE TABLE `oauth_approvals` (
+  `userId` varchar(256) DEFAULT NULL,
+  `clientId` varchar(256) DEFAULT NULL,
+  `partnerKey` varchar(32) DEFAULT NULL,
+  `scope` varchar(256) DEFAULT NULL,
+  `status` varchar(10) DEFAULT NULL,
+  `expiresAt` datetime DEFAULT NULL,
+  `lastModifiedAt` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `oauth_client_details` (
+  `client_id` varchar(64) NOT NULL,
+  `resource_ids` varchar(255) DEFAULT NULL,
+  `client_secret` varchar(255) DEFAULT NULL,
+  `scope` varchar(255) DEFAULT NULL,
+  `authorized_grant_types` varchar(255) DEFAULT NULL,
+  `web_server_redirect_uri` varchar(255) DEFAULT NULL,
+  `authorities` varchar(255) DEFAULT NULL,
+  `access_token_validity` int(11) DEFAULT NULL,
+  `refresh_token_validity` int(11) DEFAULT NULL,
+  `additional_information` varchar(1000) DEFAULT NULL,
+  `autoapprove` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`client_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `oauth_code` (
+  `code` varchar(255) DEFAULT NULL,
+  `authentication` blob
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
+### 表结构数据初始化
+定义客户端的授权方式：往oauth_client_details表插入一条名为userservice，密码123456(采用哈希)的password模式、client_credentials。
+
+```
+INSERT INTO `oauth_client_details` (`client_id`, `resource_ids`, `client_secret`, `scope`, `authorized_grant_types`, `web_server_redirect_uri`, `authorities`, `access_token_validity`, `refresh_token_validity`, `additional_information`, `autoapprove`) VALUES ('userservice', '', '$2a$10$ZRyWnA9PY8Wn.LPN0DtxKer4NF/COK7asCXOAemZSazliGhlIBVk.', 'service', 'password,client_credentials,refresh_token', NULL, NULL, '7200000', NULL, NULL, 'true');
+```
+
 
 ## 总结：
 * Eureka服务注册发现<br>

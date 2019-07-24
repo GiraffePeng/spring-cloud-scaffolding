@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EntityListeners;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -33,12 +37,17 @@ public class User implements UserDetails,Serializable{
     private String username;
 
     private String password;
+    
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Role> authorities;
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		List<GrantedAuthority> authorityList = new ArrayList<>();
-		authorityList.add(new SimpleGrantedAuthority("USER"));
-		return authorityList;
+		return authorities;
+	}
+	
+	public void setAuthorities(List<Role> authorities) {
+		this.authorities = authorities;
 	}
 
 	public Long getId() {
@@ -68,6 +77,19 @@ public class User implements UserDetails,Serializable{
 	@Override
 	public boolean isCredentialsNonExpired() {
 		return true;
+	}
+	
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
 	}
 
 	@Override

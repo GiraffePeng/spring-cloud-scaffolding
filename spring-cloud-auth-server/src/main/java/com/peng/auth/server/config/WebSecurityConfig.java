@@ -33,6 +33,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 	 protected void configure(HttpSecurity http) throws Exception {
 		 http.csrf().disable() //关闭CSRF
          .authorizeRequests()
+         .antMatchers("/oauth/authorize")//开放/oauth/authorize路径的匿名访问，后者用于换授权码，这个端点访问的时候在登录之前
+         .permitAll()
          .anyRequest()
          .authenticated()
      .and()
@@ -44,6 +46,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 		 return new BCryptPasswordEncoder();
 	 }
 
+	 //我们把用户存在了数据库中希望配置JDBC的方式，此外，我们还配置了使用BCryptPasswordEncoder加密来保存用户的密码（生产环境的用户密码肯定不能是明文保存）
 	 @Override
 	 protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 		 auth.userDetailsService(userServiceDetail).passwordEncoder(passwordEncoder());

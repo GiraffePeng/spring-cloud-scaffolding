@@ -1,6 +1,9 @@
 package com.peng.auth.server.config;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+
+import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,12 +19,18 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.approval.JdbcApprovalStore;
+import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
+
 
 
 /**
@@ -37,56 +46,63 @@ import org.springframework.security.oauth2.provider.token.store.redis.RedisToken
 @Configuration
 public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdapter{
 	
+    @Autowired
+    private DataSource dataSource;
 	@Autowired
 	@Qualifier("authenticationManagerBean")
     private AuthenticationManager authenticationManager;
 
-    @Autowired 
-    private RedisConnectionFactory redisConnectionFactory;
-    
-    @Bean
-    RedisTokenStore redisTokenStore(){
-        return new RedisTokenStore(redisConnectionFactory);
-    }
-    
     /**
      * 用来配置客户端详情信息，一般使用数据库来存储或读取应用配置的详情信息（client_id ，client_secret，redirect_uri 等配置信息）。
      */
     @Override
     public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+    	clients.jdbc(dataSource);
     	// 将客户端的信息存储在内存中
-        clients.inMemory()
+        /*clients.inMemory()
                 // 配置一个客户端
                 .withClient("userservice")
                 .secret(new BCryptPasswordEncoder().encode("123456"))
                 // 配置客户端的域
                 .scopes("service")
                  // 配置验证类型为refresh_token和password
-                .authorizedGrantTypes("refresh_token", "password","authorization_code","client_credentials")
-                .redirectUris("http://www.baidu.com")
+                .authorizedGrantTypes("refresh_token", "password","client_credentials")
                 // 配置token的过期时间为1h
-                .accessTokenValiditySeconds(3600 * 1000);
+                .accessTokenValiditySeconds(3600 * 1000);*/
     }
     
     /**
-     * 用来配置授权以及令牌（Token）的访问端点和令牌服务（比如：配置令牌的签名与存储方式）
+     * 配置我们的Token存放方式不是内存方式、不是数据库方式、不是Redis方式而是JWT方式，JWT是Json Web Token缩写也就是使用JSON数据格式包装的Token，由.句号把整个JWT分隔为头、数据体、签名三部分，JWT保存Token虽然易于使用但是不是那么安全，一般用于内部，并且需要走HTTPS+配置比较短的失效时间
+	 * 配置了JWT Token的非对称加密来进行签名
+	 * 配置了一个自定义的Token增强器，把更多信息放入Token中
+	 * 配置了使用JDBC数据库方式来保存用户的授权批准记录
      */
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-    	// 配置token的存储方式为JwtTokenStore
-        endpoints.tokenStore(tokenStore())
-                 // 配置用于JWT私钥加密的增强器
-                 .tokenEnhancer(jwtTokenEnhancer())
-                 // 配置安全认证管理
-                 .authenticationManager(authenticationManager);
-        // 配置tokenServices参数
-        DefaultTokenServices tokenServices = new DefaultTokenServices();
-        tokenServices.setTokenStore(endpoints.getTokenStore());
-        tokenServices.setSupportRefreshToken(true);
-        tokenServices.setClientDetailsService(endpoints.getClientDetailsService());
-        tokenServices.setTokenEnhancer(endpoints.getTokenEnhancer());
-        tokenServices.setAccessTokenValiditySeconds((int)TimeUnit.DAYS.toSeconds(30)); // 30天
-        endpoints.tokenServices(tokenServices);
+    	TokenEnhancerChain tokenEnhancerChain = new TokenEnhancerChain();
+        tokenEnhancerChain.setTokenEnhancers(
+                Arrays.asList(tokenEnhancer(), jwtTokenEnhancer()));//配置了JWT Token的非对称加密来进行签名
+
+        endpoints.approvalStore(approvalStore())//配置了使用JDBC数据库方式来保存用户的授权批准记录
+                .authorizationCodeServices(authorizationCodeServices())
+                .tokenStore(tokenStore())	//配置我们的Token存放方式不是内存方式、不是数据库方式、不是Redis方式而是JWT方式
+                .tokenEnhancer(tokenEnhancerChain)//配置了一个自定义的Token增强器，把更多信息放入Token中
+                .authenticationManager(authenticationManager);
+    }
+    
+    @Bean
+    public TokenEnhancer tokenEnhancer() {
+        return new CustomTokenEnhancer();
+    }
+    
+    @Bean
+    public JdbcApprovalStore approvalStore() {
+        return new JdbcApprovalStore(dataSource);
+    }
+    
+    @Bean
+    public AuthorizationCodeServices authorizationCodeServices() {
+        return new JdbcAuthorizationCodeServices(dataSource);
     }
     
     @Bean
@@ -96,9 +112,8 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
     
     @Override
     public void configure(AuthorizationServerSecurityConfigurer oauthServer) {
-        //curl -i -X POST -H "Accept: application/json" -u "client_1:123456" http://localhost:5000/oauth/check_token?token=a1478d56-ebb8-4f21-b4b6-8a9602df24ec
-        oauthServer.tokenKeyAccess("permitAll()")         //url:/oauth/token_key,exposes public key for token verification if using JWT tokens
-                   .checkTokenAccess("isAuthenticated()") //url:/oauth/check_token allow check token
+        oauthServer.tokenKeyAccess("permitAll()")         
+                   .checkTokenAccess("isAuthenticated()") 
                    .allowFormAuthenticationForClients();
     }
     
