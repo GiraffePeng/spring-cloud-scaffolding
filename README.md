@@ -44,7 +44,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 ## 项目模块介绍：
 * spring-cloud-eureka-server：平台服务注册与发现服务中心。 <br>
 * spring-cloud-zuul-server:zuul网关服务 <br>
-* spring-cloud-auth-server:认证、授权服务器。 <br>
+* spring-cloud-auth-server:授权服务。 <br>
 * spring-cloud-turbine-server:断路器监控，用于汇总Hystrix服务断路器监控流。 <br>
 * spring-cloud-admin-server:集成spring-boot-admin，用于对服务的监控，查看配置属性，日志的管理等，详见：[GITHUB:spring-boot-admin](https://github.com/codecentric/spring-boot-admin) <br>
 * spring-cloud-common：接口共享方式实现的API项目，API项目不包含任何服务端实现，因此这里只是引入了feign组件。在API接口项目中，我们一般定义，一是服务接口定义，二是传输数据DTO定义,三是公共的基础类。 <br>
@@ -89,7 +89,15 @@ eureka-service支持单点和集群模式
 * 服务层级熔断降级
 * Swagger API文档
 * zuul过滤器
-* zuul网关层身份认证(oauth2.0)
+* zuul网关层作为资源服务器进行身份认证(oauth2.0)
+### 授权服务(spring-cloud-auth-server)
+详情链接:[oauth2.0授权服务](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-auth-server/README.md)
+
+利用Spring Security + oauth2.0 + JWT来实现的授权服务
+* 客户端信息以及用户信息按照生产环境模拟，将其保存在了数据库中。
+* 自定义了Token增强器，在其负荷部分加入自定义内容
+* 使用JWT来实现token的生成
+
 
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
