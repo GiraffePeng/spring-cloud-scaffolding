@@ -558,3 +558,6 @@ public class ZuulRoteFallback implements FallbackProvider{
 
 ## 七、利用oauth2.0统一鉴权：
 实现资源服务器，[详情点击此处,节点(4、资源服务器的搭建)](https://github.com/yipengcheng001/spring-cloud-scaffolding/tree/master/spring-cloud-auth-server)
+
+## 八、网关集成swagger：
+因为存在网关，由网关作为统一的swagger的入口，[详细点击此处](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/readme/swagger.md)
