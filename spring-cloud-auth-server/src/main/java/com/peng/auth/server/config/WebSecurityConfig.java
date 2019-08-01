@@ -23,7 +23,6 @@ import com.peng.auth.server.repository.UserServiceDetail;
  */
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 	
 	@Autowired
@@ -35,7 +34,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
          .authorizeRequests()
          .antMatchers("/oauth/authorize")//开放/oauth/authorize路径的匿名访问，后者用于换授权码，这个端点访问的时候在登录之前
          .permitAll()
-         .anyRequest()
+         .anyRequest() //其他所有路径访问，进行验证
          .authenticated()
      .and()
          .httpBasic();
@@ -52,11 +51,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 		 auth.userDetailsService(userServiceDetail).passwordEncoder(passwordEncoder());
 	 }
 	 
-	 @Override
-	 public void configure(WebSecurity web) throws Exception {
-		 web.ignoring().antMatchers("/favor.ioc");
-	 }
-
 	 @Override
 	 public @Bean AuthenticationManager authenticationManagerBean() throws Exception {
 	     return super.authenticationManagerBean();

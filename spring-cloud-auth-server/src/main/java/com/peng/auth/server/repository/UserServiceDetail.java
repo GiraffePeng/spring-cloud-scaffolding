@@ -19,16 +19,7 @@ public class UserServiceDetail implements UserDetailsService{
 	private RoleRepository roleRepository;
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		//Iterator<User> iterator = userRepository.findAll().iterator();
 		User user = userRepository.findByUsername(username);
-		/*User user = null;
-		while(iterator.hasNext()) {
-			User next = iterator.next();
-			if(username.equals(next.getUsername())) {
-				user = next;
-				break;
-			}
-		}*/
 		List<Role> roles = roleRepository.findByUserId(user.getId());
 		user.setAuthorities(roles);
 		return user;

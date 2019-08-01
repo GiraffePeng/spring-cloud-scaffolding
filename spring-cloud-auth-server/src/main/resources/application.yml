@@ -15,10 +15,6 @@ spring:
     database: 0
     port: 6379
 
-security:
-  oauth2:
-    resource:
-      filter-order: 3
 hystrix:
     command:
         default:

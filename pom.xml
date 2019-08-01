@@ -15,6 +15,7 @@
         <module>spring-cloud-eureka-server</module>
         <module>spring-cloud-zuul-server</module>
         <module>spring-cloud-turbine-server</module>
+        <module>spring-cloud-turbine-mq</module>
         <module>spring-cloud-projectservice-listener</module>
         <module>spring-cloud-admin-server</module>
         <module>spring-cloud-auth-server</module>

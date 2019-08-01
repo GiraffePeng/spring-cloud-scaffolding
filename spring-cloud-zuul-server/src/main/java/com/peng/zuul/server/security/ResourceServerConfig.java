@@ -24,7 +24,7 @@ import com.peng.zuul.server.security.exception.AuthExceptionEntryPoint;
 import com.peng.zuul.server.security.exception.CustomAccessDeniedHandler;
 
 @Configuration
-@EnableResourceServer
+@EnableResourceServer//@EnableResourceServer启用资源服务器
 public class ResourceServerConfig extends ResourceServerConfigurerAdapter{
 	
 	@Autowired
@@ -41,21 +41,22 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter{
         http
         .csrf().disable();
         ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry hasAuthority = http.authorizeRequests();
-        //从yml配置文件中获取不需要认证的url
+        //从yml配置文件中获取不需要认证的url(即匿名能访问的url)
         filterIgnorePropertiesConfig.getUrls().forEach(url -> hasAuthority.antMatchers(url).permitAll());
-        hasAuthority.antMatchers("/**").hasAuthority("USER");
+        hasAuthority.antMatchers("/**").hasAuthority("USER");//除上述url，其他url必须携带权限有USER的token才可以访问
     }
 
     @Override
     public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
-        resources.tokenStore(tokenStore());
-        resources.authenticationEntryPoint(authExceptionEntryPoint)
-                .accessDeniedHandler(customAccessDeniedHandler);
+        resources.tokenStore(tokenStore());//声明了资源服务器的TokenStore是JWT以及公钥
+        
+        resources.authenticationEntryPoint(authExceptionEntryPoint)//无效token 或token不存在异常类重写
+                .accessDeniedHandler(customAccessDeniedHandler);//权限不足异常类重写
     }
     
     @Bean
     public JwtAccessTokenConverter accessTokenConverter() {
-    	// 用作JWT转换器
+    	// 用作JWT转换器  获取resource目录下的public.cert文件
         JwtAccessTokenConverter converter =  new JwtAccessTokenConverter();
         Resource resource = new ClassPathResource("public.cert");
         String publicKey;
