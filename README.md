@@ -46,6 +46,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 * spring-cloud-zuul-server:zuul网关服务 <br>
 * spring-cloud-auth-server:授权服务。 <br>
 * spring-cloud-turbine-server:断路器监控，用于汇总Hystrix服务断路器监控流。 <br>
+* spring-cloud-turbine-mq:turbine的MQ模式<br>
 * spring-cloud-admin-server:集成spring-boot-admin，用于对服务的监控，查看配置属性，日志的管理等，详见：[GITHUB:spring-boot-admin](https://github.com/codecentric/spring-boot-admin) <br>
 * spring-cloud-common：接口共享方式实现的API项目，API项目不包含任何服务端实现，因此这里只是引入了feign组件。在API接口项目中，我们一般定义，一是服务接口定义，二是传输数据DTO定义,三是公共的基础类。 <br>
 * spring-cloud-investservice-server:业务服务模块 <br>
@@ -98,6 +99,16 @@ eureka-service支持单点和集群模式
 * 自定义了Token增强器，在其负荷部分加入自定义内容
 * 使用JWT来实现token的生成
 
+### hystrix监控服务(spring-cloud-turbine-server)
+详情链接:[hystrix监控](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-turbine-server/README.md)
+
+* 集成hystrix-dashboard+turbine来监控hystrix的熔断等情况
+* 监控的服务为业务服务investservice,userservice,projectservice,projectservice-listener
+
+### hystrix监控服务MQ方式(spring-cloud-turbine-mq)
+详情链接:[hystrixMQ监控](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-turbine-mq/README.md)
+
+* spring-cloud-turbine-server是监控端主动去各个被监控的服务获取 host:port/actuator/hystrix.stream接口数据，该监控服务使用的为各个被监控服务通过rabbitMQ主动上报数据，turbine通过从rabbitMQ中异步获取数据来展示监控页面。生产推荐使用该方式来保证数据的准确性。
 
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
@@ -105,7 +116,9 @@ eureka-service支持单点和集群模式
 * oauth_approvals授权批准表，存放了用户授权第三方服务器的批准情况
 * oauth_client_details，客户端信息表，存放客户端的ID、密码、权限、允许访问的资源服务器ID以及允许使用的授权模式等信息
 * oauth_code授权码表，存放了授权码
-
+* user(会员表)业务表
+* project(项目表)业务表
+* invest(投资记录表)业务表
 表结构如下：
 
 ```
@@ -122,7 +135,7 @@ CREATE TABLE `role_auth` (
   `authority` varchar(255) NOT NULL,
   `user_id` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`authority`)
+  KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`authority`)
 ) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8 COMMENT='用户角色表';
 
 CREATE TABLE `oauth_approvals` (
@@ -154,6 +167,47 @@ CREATE TABLE `oauth_code` (
   `code` varchar(255) DEFAULT NULL,
   `authentication` blob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `user` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `available_balance` decimal(10,2) unsigned NOT NULL,
+  `frozen_balance` decimal(10,2) unsigned NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `project` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) CHARACTER SET utf8mb4 NOT NULL,
+  `reason` varchar(50) CHARACTER SET utf8mb4 NOT NULL,
+  `borrower_id` bigint(20) unsigned NOT NULL,
+  `total_amount` decimal(10,0) unsigned NOT NULL,
+  `remain_amount` decimal(10,0) unsigned NOT NULL,
+  `status` tinyint(3) unsigned DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `invest` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `project_id` bigint(20) unsigned NOT NULL,
+  `project_name` varchar(50) CHARACTER SET utf8mb4 NOT NULL,
+  `investor_id` bigint(20) unsigned NOT NULL,
+  `investor_name` varchar(50) CHARACTER SET utf8mb4 NOT NULL,
+  `borrower_id` bigint(20) unsigned NOT NULL,
+  `borrower_name` varchar(50) CHARACTER SET utf8mb4 NOT NULL,
+  `amount` decimal(10,2) unsigned NOT NULL,
+  `status` tinyint(4) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+
+
 ```
 ### 表结构数据初始化
 定义客户端的授权方式：往oauth_client_details表插入一条名为userservice，密码123456(采用哈希)的password模式、client_credentials。
@@ -161,7 +215,14 @@ CREATE TABLE `oauth_code` (
 ```
 INSERT INTO `oauth_client_details` (`client_id`, `resource_ids`, `client_secret`, `scope`, `authorized_grant_types`, `web_server_redirect_uri`, `authorities`, `access_token_validity`, `refresh_token_validity`, `additional_information`, `autoapprove`) VALUES ('userservice', '', '$2a$10$ZRyWnA9PY8Wn.LPN0DtxKer4NF/COK7asCXOAemZSazliGhlIBVk.', 'service', 'password,client_credentials,refresh_token', NULL, NULL, '7200000', NULL, NULL, 'true');
 ```
+### 业务表数据初始化
+```
+INSERT INTO `project` (`id`, `name`, `reason`, `borrower_id`, `total_amount`, `remain_amount`, `status`, `created_at`, `updated_at`) VALUES ('1', '投资项目', '借款人', '3', '1000', '1000', '1', '2017-05-31 17:24:15', '2017-06-03 16:56:47');
+INSERT INTO `user` (`id`, `name`, `available_balance`, `frozen_balance`, `created_at`, `updated_at`) VALUES ('1', '投资人1', '10000.00', '0.00', '2017-05-31 17:25:02', '2017-05-31 17:25:02');
+INSERT INTO `user` (`id`, `name`, `available_balance`, `frozen_balance`, `created_at`, `updated_at`) VALUES ('2', '投资人2', '10000.00', '0.00', '2017-05-31 17:25:02', '2017-05-31 17:25:02');
+INSERT INTO `user` (`id`, `name`, `available_balance`, `frozen_balance`, `created_at`, `updated_at`) VALUES ('3', '借款人', '0.00', '0.00', '2017-05-31 17:25:02', '2017-05-31 17:25:02');
 
+```
 
 ## 总结：
 * Eureka服务注册发现<br>
