@@ -21,6 +21,9 @@ spring cloud 脚手架集成Spring Cloud(Finchley版本)体系，整合了各微
 |Zipkin	|分布式链路跟踪系统|[https://zipkin.io/](https://zipkin.io/)|
 |RabbitMQ|消息中间件	|[https://www.rabbitmq.com/](https://www.rabbitmq.com/)|
 |Ratelimit|网关限流框架|[https://github.com/marcosbarbero/spring-cloud-zuul-ratelimit/](https://github.com/marcosbarbero/spring-cloud-zuul-ratelimit/)|
+|Kafka|分布式消息队列|[http://kafka.apache.org/](http://kafka.apache.org/)|
+|Elasticsearch|搜索引擎|[https://www.elastic.co/cn/products/elasticsearch](https://www.elastic.co/cn/products/elasticsearch)|
+|Kibana|ES分析和搜索仪表板|[https://www.elastic.co/cn/products/kibana](https://www.elastic.co/cn/products/kibana)|
 
 PS：没有集成 spring cloud config 是因为实用性不好，我所了解到部分的开源的配置中心的功能比cloud config好很多，后续我会集成来自携程的apollo来作为配置中心。
 
