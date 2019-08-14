@@ -110,6 +110,12 @@ eureka-service支持单点和集群模式
 
 * spring-cloud-turbine-server是监控端主动去各个被监控的服务获取 host:port/actuator/hystrix.stream接口数据，该监控服务使用的为各个被监控服务通过rabbitMQ主动上报数据，turbine通过从rabbitMQ中异步获取数据来展示监控页面。生产推荐使用该方式来保证数据的准确性。
 
+###  全链路监控
+详情链接：[全链路监控](https://github.com/GiraffePeng/spring-cloud-scaffolding/blob/master/readme/zipkin.md)
+
+* Sleuth + Zipkin 实现链路监控
+* Sleuth + Kafka + Zipkin + Elasticsearch + Kibana 实现链路监控
+
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
 * role_auth表，存放了用户的权限信息
