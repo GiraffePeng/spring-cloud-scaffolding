@@ -60,7 +60,7 @@ PS：没有集成 spring cloud config 是因为实用性不好，我所了解到
 * zipkin，用于做服务调用监控、收集分布式追踪信息，spring cloud 升级到Finchley.RELEASE版本、spring boot升级到2.XX版本后，zipkin官网不建议自行集成，所以提供了下载jar包进行部署的方式。搭建方式：[GITHUB:zipkin](https://github.com/openzipkin/zipkin),jar包下载地址：[zipkinjar包下载](https://dl.bintray.com/openzipkin/maven/io/zipkin/java/zipkin-server/) 此处使用2.11.6版本。 <br>
 
 =======================================================
-### 平台服务注册与发现服务中心(spring-cloud-eureka-server)
+### 一、平台服务注册与发现服务中心(spring-cloud-eureka-server)
 详情链接：[详细说明](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-eureka-server/README.md)
 ```
 eureka-service支持单点和集群模式
@@ -81,7 +81,7 @@ eureka-service支持单点和集群模式
 集群cluster3启动： java -jar spring-cloud-eureka-server-1.0-SNAPSHOT.jar --spring.profiles.active=cluster3
 对应服务：http://localhost:8863/eureka/
 ```
-### 网关服务(spring-cloud-zuul-server)
+### 二、网关服务(spring-cloud-zuul-server)
 详情链接：[zuul网关服务](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-zuul-server/README.md)
 
 大体功能如下：
@@ -94,7 +94,7 @@ eureka-service支持单点和集群模式
 * Swagger API文档
 * zuul过滤器
 * zuul网关层作为资源服务器进行身份认证(oauth2.0)
-### 授权服务(spring-cloud-auth-server)
+### 三、授权服务(spring-cloud-auth-server)
 详情链接:[oauth2.0授权服务](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-auth-server/README.md)
 
 利用Spring Security + oauth2.0 + JWT来实现的授权服务
@@ -102,18 +102,18 @@ eureka-service支持单点和集群模式
 * 自定义了Token增强器，在其负荷部分加入自定义内容
 * 使用JWT来实现token的生成
 
-### hystrix监控服务(spring-cloud-turbine-server)
+### 四、hystrix监控服务(spring-cloud-turbine-server)
 详情链接:[hystrix监控](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-turbine-server/README.md)
 
 * 集成hystrix-dashboard+turbine来监控hystrix的熔断等情况
 * 监控的服务为业务服务investservice,userservice,projectservice,projectservice-listener
 
-### hystrix监控服务MQ方式(spring-cloud-turbine-mq)
+### 五、hystrix监控服务MQ方式(spring-cloud-turbine-mq)
 详情链接:[hystrixMQ监控](https://github.com/yipengcheng001/spring-cloud-scaffolding/blob/master/spring-cloud-turbine-mq/README.md)
 
 * spring-cloud-turbine-server是监控端主动去各个被监控的服务获取 host:port/actuator/hystrix.stream接口数据，该监控服务使用的为各个被监控服务通过rabbitMQ主动上报数据，turbine通过从rabbitMQ中异步获取数据来展示监控页面。生产推荐使用该方式来保证数据的准确性。
 
-###  全链路监控
+###  六、全链路监控
 详情链接：[全链路监控](https://github.com/GiraffePeng/spring-cloud-scaffolding/blob/master/readme/zipkin.md)
 
 * Sleuth + Zipkin 实现链路监控
