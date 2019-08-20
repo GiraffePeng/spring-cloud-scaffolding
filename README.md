@@ -119,6 +119,19 @@ eureka-service支持单点和集群模式
 * Sleuth + Zipkin 实现链路监控
 * Sleuth + Kafka + Zipkin + Elasticsearch + Kibana 实现链路监控
 
+###  七、SBA服务监控
+详情链接：[SBA服务监控](https://github.com/GiraffePeng/spring-cloud-scaffolding/blob/master/spring-cloud-admin-server/README.md)
+
+* Spring Boot Admin 实现服务的监控
+* 显示 name/id 和版本号
+* 显示在线状态
+* Logging 日志级别管理
+* JMX beans 管理
+* Threads 会话和线程管理
+* Trace 应用请求跟踪
+* 应用运行参数信息，如：Java 系统属性、Java 环境变量属性、内存信息、Spring 环境属性
+
+
 ## 表结构：
 * user_auth表用于oauth2的用户信息记录。<br>
 * role_auth表，存放了用户的权限信息
