@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: adminserver
+  security:
+    user:
+      name: 'admin'
+      password: 'admin'
   zipkin:
       base-url: http://localhost:9411
   sleuth:
