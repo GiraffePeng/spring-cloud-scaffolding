@@ -101,7 +101,7 @@ eureka-service支持单点和集群模式
 * 客户端信息以及用户信息按照生产环境模拟，将其保存在了数据库中。
 * 自定义了Token增强器，在其负荷部分加入自定义内容
 * 使用JWT来实现token的生成
-
+* 自定义根据手机号验证码和手机号密码的形式授权的grant_type，可基本满足于移动端的开发
 ### 四、hystrix监控服务(spring-cloud-turbine-server)
 详情链接:[hystrix监控](https://blog.csdn.net/qq_35551089/article/details/98081452)
 
@@ -133,7 +133,8 @@ eureka-service支持单点和集群模式
 
 
 ## 表结构：
-* user_auth表用于oauth2的用户信息记录。<br>
+* user_auth表用于管理端oauth2的用户信息记录。<br>
+* member_auth表用于移动端oauth2的会员信息记录。
 * role_auth表，存放了用户的权限信息
 * oauth_approvals授权批准表，存放了用户授权第三方服务器的批准情况
 * oauth_client_details，客户端信息表，存放客户端的ID、密码、权限、允许访问的资源服务器ID以及允许使用的授权模式等信息
@@ -151,6 +152,15 @@ CREATE TABLE `user_auth` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='用户表';
+
+CREATE TABLE `member` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `password` varchar(255) DEFAULT NULL,
+  `username` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8 COMMENT='移动端会员表';
+
 
 CREATE TABLE `role_auth` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,

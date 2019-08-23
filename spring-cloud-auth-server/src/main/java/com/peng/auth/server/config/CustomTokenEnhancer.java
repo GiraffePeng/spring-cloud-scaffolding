@@ -9,6 +9,8 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.TokenEnhancer;
 
+import com.alibaba.fastjson.JSONObject;
+
 /**
  * 这段代码非常简单，就是把用户信息以userDetails这个Key存放到Token中去（如果授权模式是客户端模式这段代码无效，因为和用户没关系）。
  * 这是一个常见需求，默认情况下Token中只会有用户名这样的基本信息，
@@ -23,8 +25,10 @@ public class CustomTokenEnhancer implements TokenEnhancer {
         Authentication userAuthentication = authentication.getUserAuthentication();
         if (userAuthentication != null) {
             Object principal = authentication.getUserAuthentication().getPrincipal();
+            JSONObject detail = JSONObject.parseObject(JSONObject.toJSONString(principal));
+            detail.remove("password");
             Map<String, Object> additionalInfo = new HashMap<>();
-            additionalInfo.put("userDetails", principal);
+            additionalInfo.put("userDetails", detail);
             ((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(additionalInfo);
         }
         return accessToken;

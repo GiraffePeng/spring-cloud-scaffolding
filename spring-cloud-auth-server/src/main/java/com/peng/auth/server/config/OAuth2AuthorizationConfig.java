@@ -1,6 +1,8 @@
 package com.peng.auth.server.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
@@ -19,9 +21,15 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.A
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.CompositeTokenGranter;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.TokenGranter;
 import org.springframework.security.oauth2.provider.approval.JdbcApprovalStore;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenEnhancer;
 import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
@@ -30,6 +38,12 @@ import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenCo
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
 import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
+
+import com.peng.auth.server.mobile.CustomUserDetailsService;
+import com.peng.auth.server.mobile.PhonePasswordCustomTokenGranter;
+import com.peng.auth.server.mobile.PhoneSmsCustomTokenGranter;
+
+
 
 
 
@@ -52,6 +66,9 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
 	@Qualifier("authenticationManagerBean")
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    public CustomUserDetailsService customUserDetailsService;
+    
     /**
      * 配置了使用数据库来维护客户端信息，下面注释的为将客户端信息存储在内存中，通过配置直接写死在这里(生产环境还是推荐使用数据库来存储)
      * 对于实际的应用我们一般都会用数据库来维护这个信息。
@@ -79,6 +96,7 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
 	 * 配置了JWT Token的非对称加密来进行签名
 	 * 配置了一个自定义的Token增强器，把更多信息放入Token中
 	 * 配置了使用JDBC数据库方式来保存用户的授权批准记录
+	 * 配置自定义grant，满足移动端的授权条件
      */
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
@@ -86,11 +104,28 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
         tokenEnhancerChain.setTokenEnhancers(
                 Arrays.asList(tokenEnhancer(), jwtTokenEnhancer()));//配置了JWT Token的非对称加密来进行签名
 
+        List<TokenGranter> tokenGranters = getTokenGranters(endpoints.getTokenServices(), endpoints.getClientDetailsService(), endpoints.getOAuth2RequestFactory());
+        tokenGranters.add(endpoints.getTokenGranter());
+        
+        endpoints.setClientDetailsService(clientDetailsService()); //配置从JDBC中获取客户端配置信息
         endpoints.approvalStore(approvalStore())//配置了使用JDBC数据库方式来保存用户的授权批准记录
                 .authorizationCodeServices(authorizationCodeServices())
                 .tokenStore(tokenStore())	//配置我们的Token存放方式不是内存方式、不是数据库方式、不是Redis方式而是JWT方式
                 .tokenEnhancer(tokenEnhancerChain)//配置了一个自定义的Token增强器，把更多信息放入Token中
-                .authenticationManager(authenticationManager);
+                .authenticationManager(authenticationManager)
+                .tokenGranter(new CompositeTokenGranter(tokenGranters)); //配置自定义的granter  这里有通过手机号密码的形式以及手机号短信验证码的形式  对应grant_type为custom_phone_pwd custom_phone_sms
+    }
+    
+    private List<TokenGranter> getTokenGranters(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
+        return new ArrayList<TokenGranter>(Arrays.asList(
+                new PhoneSmsCustomTokenGranter(tokenServices, clientDetailsService, requestFactory, customUserDetailsService),
+                new PhonePasswordCustomTokenGranter(tokenServices, clientDetailsService, requestFactory, customUserDetailsService)
+        ));
+    }
+    
+    @Bean
+    public ClientDetailsService clientDetailsService() {
+        return new JdbcClientDetailsService(dataSource);
     }
     
     @Bean

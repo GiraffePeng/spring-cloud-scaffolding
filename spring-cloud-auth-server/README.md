@@ -190,7 +190,8 @@ eureka:
 会使用到mysql数据库，授权服务器的端口是8599。
 ### 3.3、建立表
 因为授权服务器的客户端信息以及用户信息要放入数据库中，我们需要初始化一些表：
-* user_auth表用于oauth2的用户信息记录。
+* user_auth表用于管理端oauth2的用户信息记录。
+* member_auth表用于移动端oauth2的会员信息记录。
 * role_auth表，存放了用户的权限信息
 * oauth_approvals授权批准表，存放了用户授权第三方服务器的批准情况
 * oauth_client_details，客户端信息表，存放客户端的ID、密码、权限、允许访问的资源服务器ID以及允许使用的授权模式等信息
@@ -205,6 +206,15 @@ CREATE TABLE `user_auth` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='用户表';
+
+CREATE TABLE `member` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `password` varchar(255) DEFAULT NULL,
+  `username` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK_sb8bbouer5wak8vyiiy4pf2bx` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8 COMMENT='会员表';
+
 
 CREATE TABLE `role_auth` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -244,10 +254,64 @@ CREATE TABLE `oauth_code` (
   `authentication` blob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
+因为客户端存入数据库中，需要初始化下客户端的信息
+```
+INSERT INTO `oauth_client_details` (`client_id`, `resource_ids`, `client_secret`, `scope`, `authorized_grant_types`, `web_server_redirect_uri`, `authorities`, `access_token_validity`, `refresh_token_validity`, `additional_information`, `autoapprove`) VALUES ('userservice', '', '$2a$10$ZRyWnA9PY8Wn.LPN0DtxKer4NF/COK7asCXOAemZSazliGhlIBVk.', 'service', 'password,client_credentials,custom_phone_pwd,custom_phone_sms,refresh_token', NULL, NULL, '86400', '2592000', NULL, 'true');
+
+```
 
 没有在数据库中创建相应的表来存放访问令牌、刷新令牌，这是因为令牌信息会使用JWT来传输，不会存放到数据库中。
 ### 3.4、配置授权服务器
 ```
+package com.peng.auth.server.config;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
+import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.CompositeTokenGranter;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.TokenGranter;
+import org.springframework.security.oauth2.provider.approval.JdbcApprovalStore;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
+import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
+import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
+import org.springframework.security.oauth2.provider.token.store.KeyStoreKeyFactory;
+import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
+
+import com.peng.auth.server.mobile.CustomUserDetailsService;
+import com.peng.auth.server.mobile.PhonePasswordCustomTokenGranter;
+import com.peng.auth.server.mobile.PhoneSmsCustomTokenGranter;
+
+
+
+
+
 /**
  * 授权服务器（authorization server）：成功验证资源拥有者并获取授权之后，授权服务器颁发授权令牌（Access Token）给客户端。
 [/oauth/authorize] 用于授权码模式下获取code
@@ -267,6 +331,9 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
 	@Qualifier("authenticationManagerBean")
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    public CustomUserDetailsService customUserDetailsService;
+    
     /**
      * 配置了使用数据库来维护客户端信息，下面注释的为将客户端信息存储在内存中，通过配置直接写死在这里(生产环境还是推荐使用数据库来存储)
      * 对于实际的应用我们一般都会用数据库来维护这个信息。
@@ -294,6 +361,7 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
 	 * 配置了JWT Token的非对称加密来进行签名
 	 * 配置了一个自定义的Token增强器，把更多信息放入Token中
 	 * 配置了使用JDBC数据库方式来保存用户的授权批准记录
+	 * 配置自定义grant，满足移动端的授权条件
      */
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
@@ -301,11 +369,28 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
         tokenEnhancerChain.setTokenEnhancers(
                 Arrays.asList(tokenEnhancer(), jwtTokenEnhancer()));//配置了JWT Token的非对称加密来进行签名
 
+        List<TokenGranter> tokenGranters = getTokenGranters(endpoints.getTokenServices(), endpoints.getClientDetailsService(), endpoints.getOAuth2RequestFactory());
+        tokenGranters.add(endpoints.getTokenGranter());
+        
+        endpoints.setClientDetailsService(clientDetailsService()); //配置从JDBC中获取客户端配置信息
         endpoints.approvalStore(approvalStore())//配置了使用JDBC数据库方式来保存用户的授权批准记录
                 .authorizationCodeServices(authorizationCodeServices())
                 .tokenStore(tokenStore())	//配置我们的Token存放方式不是内存方式、不是数据库方式、不是Redis方式而是JWT方式
                 .tokenEnhancer(tokenEnhancerChain)//配置了一个自定义的Token增强器，把更多信息放入Token中
-                .authenticationManager(authenticationManager);
+                .authenticationManager(authenticationManager)
+                .tokenGranter(new CompositeTokenGranter(tokenGranters)); //配置自定义的granter  这里有通过手机号密码的形式以及手机号短信验证码的形式  对应grant_type为custom_phone_pwd custom_phone_sms
+    }
+    
+    private List<TokenGranter> getTokenGranters(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
+        return new ArrayList<TokenGranter>(Arrays.asList(
+                new PhoneSmsCustomTokenGranter(tokenServices, clientDetailsService, requestFactory, customUserDetailsService),
+                new PhonePasswordCustomTokenGranter(tokenServices, clientDetailsService, requestFactory, customUserDetailsService)
+        ));
+    }
+    
+    @Bean
+    public ClientDetailsService clientDetailsService() {
+        return new JdbcClientDetailsService(dataSource);
     }
     
     @Bean
@@ -346,6 +431,7 @@ public class OAuth2AuthorizationConfig extends AuthorizationServerConfigurerAdap
     }
     
 }
+
 ```
 解释都在上述代码的注释中，这里不多阐述。
 大体步骤：
@@ -379,6 +465,198 @@ public class CustomTokenEnhancer implements TokenEnhancer {
     }
 }
 ```
+针对移动端常用的手机号+密码登陆或者手机号+短信验证码登陆的场景，自定义grant_type类型，加入custom_phone_pwd和custom_phone_sms类型。
+
+创建用户细节服务
+```
+package com.peng.auth.server.mobile;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
+import org.springframework.stereotype.Service;
+
+import com.peng.auth.server.repository.Member;
+import com.peng.auth.server.repository.MemberRepository;
+
+
+
+//创建用户细节服务
+@Service
+public class CustomUserDetailsService {
+	
+	@Autowired
+	private MemberRepository memberRepository;
+	
+	public UserDetails loadUserByPhoneAndPassword(String phone, String password) {
+        if (StringUtils.isEmpty(phone) || StringUtils.isEmpty(password)) {
+            throw new InvalidGrantException("无效的手机号或密码");
+        }
+        Member member = memberRepository.findByUsername(phone);
+        member.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+        // 判断成功后返回用户细节
+        return member;
+    }
+
+    public UserDetails loadUserByPhoneAndSmsCode(String phone, String smsCode) {
+        if (StringUtils.isEmpty(phone) || StringUtils.isEmpty(smsCode)) {
+            throw new InvalidGrantException("无效的手机号或短信验证码");
+        }
+        Member member = memberRepository.findByUsername(phone);
+        //判断短信是否正确
+        member.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+        return member;
+    }
+}
+
+```
+身份验证令牌
+```
+package com.peng.auth.server.mobile;
+
+import java.util.Collection;
+
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+
+//身份验证令牌
+public class AuthenticationToken extends AbstractAuthenticationToken{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	private final Object principal;
+	
+	private Object credentials;
+
+	public AuthenticationToken(Collection<? extends GrantedAuthority> authorities, Object principal, Object credentials) {
+		super(authorities);
+        this.principal = principal;
+        this.credentials = credentials;
+	}
+
+	@Override
+	public Object getCredentials() {
+		return credentials;
+	}
+
+	@Override
+	public Object getPrincipal() {
+		return principal;
+	}
+
+}
+
+```
+创建自定义抽象令牌授予者
+```
+package com.peng.auth.server.mobile;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+
+//创建自定义抽象令牌授予者
+public abstract class AbstractCustomTokenGranter extends AbstractTokenGranter {
+
+	protected AbstractCustomTokenGranter(AuthorizationServerTokenServices tokenServices,
+			ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, String grantType) {
+		super(tokenServices, clientDetailsService, requestFactory, grantType);
+	}
+
+	@Override
+    protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest) {
+        Map<String, String> parameters = new LinkedHashMap(tokenRequest.getRequestParameters());
+        UserDetails details = getUserDetails(parameters);
+        if (details == null) {
+            throw new InvalidGrantException("无法获取用户信息");
+        }
+        AuthenticationToken authentication = new AuthenticationToken(details.getAuthorities(),parameters, details);
+        authentication.setAuthenticated(true);
+        authentication.setDetails(details);
+        OAuth2Request storedOAuth2Request = this.getRequestFactory().createOAuth2Request(client, tokenRequest);
+        return new OAuth2Authentication(storedOAuth2Request, authentication);
+    }
+
+    protected abstract UserDetails getUserDetails(Map<String, String> parameters);
+}
+
+```
+手机号密码登录令牌授予者
+```
+package com.peng.auth.server.mobile;
+
+import java.util.Map;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+
+
+//手机号密码登录令牌授予者
+public class PhonePasswordCustomTokenGranter extends AbstractCustomTokenGranter {
+
+    private CustomUserDetailsService userDetailsService;
+
+    public PhonePasswordCustomTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, CustomUserDetailsService userDetailsService) {
+        super(tokenServices, clientDetailsService, requestFactory,"custom_phone_pwd");
+        this.userDetailsService = userDetailsService;
+    }
+
+    @Override
+    protected UserDetails getUserDetails(Map<String, String> parameters) {
+        String phone = parameters.get("phone");
+        String password = parameters.get("password");
+        parameters.remove("password");
+        return userDetailsService.loadUserByPhoneAndPassword(phone, password);
+    }
+}
+
+```
+短信验证码登录令牌授予者
+```
+package com.peng.auth.server.mobile;
+
+import java.util.Map;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+
+
+public class PhoneSmsCustomTokenGranter extends AbstractCustomTokenGranter{
+
+    private CustomUserDetailsService userDetailsService;
+
+    public PhoneSmsCustomTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, CustomUserDetailsService userDetailsService) {
+        super(tokenServices, clientDetailsService, requestFactory,"custom_phone_sms");
+        this.userDetailsService = userDetailsService;
+    }
+
+    @Override
+    protected UserDetails getUserDetails(Map<String, String> parameters) {
+        String phone = parameters.get("phone");
+        String smsCode = parameters.get("sms_code");
+        return userDetailsService.loadUserByPhoneAndSmsCode(phone, smsCode);
+    }
+}
+```
+
 ### 3.5 生成密钥
 我们需要使用keytool工具生成密钥，把密钥文件jks保存到目录下，然后还要导出一个公钥留作以后使用。
 #### 3.5.1 安装keytool工具
